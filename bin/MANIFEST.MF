@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Main-Class: LanzaProceso
+Class-Path: lib/wlthint3client.jar lib/AmdocsProcMgrBase.jar lib/AmdocsProcMgrEngine.jar lib/AmdocsProcMgrEmitted.jar lib/AmdocsProcMgrEngineExample.jar lib/AmdocsCihDatatypes.jar lib/AmdocsCore.jar lib/AmdocsOrderingCihDataTypes.jar lib/AmdocsSvcCommon.jar lib/ClfyCore.jar lib/core_domain.jar lib/ofc.jar lib/ojdbc6.jar
+
