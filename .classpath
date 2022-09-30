@@ -19,5 +19,6 @@
 	<classpathentry kind="lib" path="lib/AmdocsProcMgrApplication.jar"/>
 	<classpathentry kind="lib" path="lib/AmdocsProcMgrProxy.jar"/>
 	<classpathentry kind="lib" path="lib/jakarta-regexp-1.2.jar"/>
+	<classpathentry kind="lib" path="lib/AmdocsAif.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

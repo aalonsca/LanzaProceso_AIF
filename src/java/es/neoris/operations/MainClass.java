@@ -1,3 +1,5 @@
+package es.neoris.operations;
+
 
 import java.util.Date;
 import java.util.Iterator;
@@ -127,7 +129,7 @@ import amdocs.epi.datamanager.DataManager;
  * @author NEORIS
  * @version: 1.0
  */
-public class LanzaProceso {
+public class MainClass {
 	
 	static String sNombreFich = "proceso.properties";
 	static String sRutaIni = System.getProperty("DIR_EJEC", ".");
@@ -233,7 +235,7 @@ public class LanzaProceso {
 			throw new Exception("Error. Son necesarios parametros de entrada: TBORDER.REFERENCE_ID BPM_PROCESS.NAME BPM_PROCESS.VERSION");
 		}
 		
-		LanzaProceso proceso = new LanzaProceso();
+		MainClass proceso = new MainClass();
 
 		proceso.setStrIDContract(args[0]);
 		proceso.setStrProcessName(args[1]);
@@ -250,12 +252,11 @@ public class LanzaProceso {
 	/**
 	 * Constructor
 	 */
-	public LanzaProceso () {
+	public MainClass () {
 	
 		try {
 			//leemos la configuracion
-			LanzaProceso.getConfiguration();			
-			LanzaProceso.setInputSetting();
+			MainClass.getConfiguration();			
 			
 		}catch(Exception e) {
 			if (getDebugMode()) {
@@ -266,45 +267,6 @@ public class LanzaProceso {
 		}
 	}
 
-	
-	private static void setInputSetting() {
-		
-		if (getDebugMode()) {
-			System.out.println("------------------------------------------------------------------------------------------");
-			System.out.println("Creating InputSettings...");
-		}
-		
-		
-		settingMap.put("waitTimeout",500);
-		settingMap.put("BackwardChainingTimeout",500);
-		settingMap.put("AutoStartTransaction",true);
-		settingMap.put("RollbackOnImplicitLockFailure",true);
-		settingMap.put("CacheConnectionDuringQuery",true);
-		settingMap.put("EnableJdbcTracing",true);
-		settingMap.put("ReplaceTableNames",m_TableNameReplacementConfigObj);
-		settingMap.put("PartitionerInitialValue",m_PartitionerInitialValueConfigObj);
-		settingMap.put("LogTransactionContentsOnRollback",m_LogTransContentsOnRollbackConfigObj);
-		settingMap.put("StatisticsLevel",null);
-		settingMap.put("AutoUpdateCrmTransactions", true);
-		settingMap.put("ThreadTransactionIsolation", true);
-		settingMap.put("name", "chioms4");
-		settingMap.put("domainName", "dxint1");
-		settingMap.put("description", "dxint1");
-		settingMap.put("verbose", true);
-		settingMap.put("Mandatory", true);			
-		settingMap.put("delay", 50L);	 
-		settingMap.put("period", 50L);	
-		settingMap.put("iterations", 50L);	
-		settingMap.put("Cron", null);	
-	 	settingMap.put("UseDefaultCalendar", true);	
-
-
-		if (getDebugMode()) {
-			System.out.println("------------------------------------------------------------------------------------------");
-			System.out.println("InputSettings created");
-		}
-
-	}
 	
 
 	/**
@@ -521,7 +483,7 @@ public class LanzaProceso {
 			propertiesCon.put(InitialContext.PROVIDER_URL, strURL_WLS);
 			if (!"".equals(strUser_WLS) && strUser_WLS != null) {
 				propertiesCon.put(InitialContext.SECURITY_PRINCIPAL, strUser_WLS);
-				propertiesCon.put(InitialContext.SECURITY_CREDENTIALS, strPassword_WLS == null ? "" : LanzaProceso.strPassword_WLS);
+				propertiesCon.put(InitialContext.SECURITY_CREDENTIALS, strPassword_WLS == null ? "" : MainClass.strPassword_WLS);
 			}
 
 			if (getDebugMode()) {
@@ -611,7 +573,7 @@ public class LanzaProceso {
 
 	          
       		// generamos las conexiones
-      		LanzaProceso.openDBConnection("BOTH");
+      		MainClass.openDBConnection("BOTH");
       		//if (("".equals(clfySessionOms.getSessionTag())) && ("".equals(clfySessionPC.getSessionTag()))) {
       		if (oraConexionPC == null || oraConexionOMS == null) {
       			// Si no hemos podido abrir las sesiones, salimos del procedimiento. 
@@ -745,7 +707,7 @@ public class LanzaProceso {
 			
 			try {
 				// cerramos las conexiones
-				LanzaProceso.closeDBConnection();
+				MainClass.closeDBConnection();
 				
 	      		
 				/* PARA PRUEBAS CON WL CAIDO
@@ -1034,7 +996,7 @@ public class LanzaProceso {
 		try {
 
 			if (conn == null) {
-				LanzaProceso.openDBConnection("OMS"); // abrimos la sesion para PC
+				MainClass.openDBConnection("OMS"); // abrimos la sesion para PC
 			}
 			
 			// Generamos la consulta con los datos del proceso a ejecutar
@@ -1226,7 +1188,7 @@ public class LanzaProceso {
             }            
             try {    
                 if (conn == null) {
-                    LanzaProceso.openDBConnection("PC"); // abrimos la sesion para PC
+                    MainClass.openDBConnection("PC"); // abrimos la sesion para PC
                 }                
                 sqlQuery = (PreparedStatement) conn.prepareStatement(strQueryProcessDef.replace("%1", strProcessName));
                 result = sqlQuery.executeQuery();             
@@ -1282,7 +1244,7 @@ public class LanzaProceso {
 		try {
 
 			if (conn == null) {
-				LanzaProceso.openDBConnection("OMS"); // abrimos la sesion para OMS
+				MainClass.openDBConnection("OMS"); // abrimos la sesion para OMS
 			}
 			
 			//++paco		
@@ -1459,7 +1421,7 @@ public class LanzaProceso {
 		try{
 			
 			if (conn == null) {
-				LanzaProceso.openDBConnection("OMS"); // abrimos la sesion para OMS
+				MainClass.openDBConnection("OMS"); // abrimos la sesion para OMS
 			}
 
 			sqlQuery = (CallableStatement) conn.prepareStatement(strQueryOmsOrder.replace("%1", orderId));
