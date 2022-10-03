@@ -31,6 +31,8 @@ import amdocs.bpm.RootCreateInfo;
 import amdocs.bpm.Step;
 import amdocs.bpm.ejb.ProcMgrSession;
 import amdocs.bpm.ejb.ProcMgrSessionHome;
+import amdocs.core.logging.LogLevel;
+import amdocs.core.logging.Logger;
 import amdocs.epi.session.EpiSessionContext;
 import amdocs.epi.session.EpiSessionId;
 import amdocs.epi.util.EpiCollections;
@@ -109,6 +111,8 @@ import com.clarify.cbo.SqlExec;
 //++paco
 import java.sql.Statement;
 import amdocs.uams.UamsSecurityException;
+import es.neoris.operations.oms.launchorder.LaunchOrder;
+import es.neoris.operations.oms.launchorder.OutputParamsLaunchOrder;
 import amdocs.epi.util.IdGen;
 import amdocs.oms.pc.PcProcessDefinitionAug;
 import java.sql.PreparedStatement;
@@ -130,7 +134,10 @@ import amdocs.epi.datamanager.DataManager;
  * @version: 1.0
  */
 public class MainClass {
-	
+
+	// Logger
+	static final Logger CONSUMER_LOGGER = Logger.getLogger("es.neoris.operations.oms.launchorder.MainClass");
+
 	static String sNombreFich = "proceso.properties";
 	static String sRutaIni = System.getProperty("DIR_EJEC", ".");
 	
@@ -230,22 +237,35 @@ public class MainClass {
 	 */
 	public static void main(String[] args) throws Exception {
 		
-		//solo es necesario para permitir lanzar procesos desde linea de comandos
+		//Previous validation
 		if (args.length == 0) {
-			throw new Exception("Error. Son necesarios parametros de entrada: TBORDER.REFERENCE_ID BPM_PROCESS.NAME BPM_PROCESS.VERSION");
+			throw new Exception("Error. Son necesarios parametros de entrada: 'OPERATION' 'TBORDER.REFERENCE_ID' 'BPM_PROCESS.NAME' 'BPM_PROCESS.VERSION'");
 		}
 		
 		MainClass proceso = new MainClass();
 
-		proceso.setStrIDContract(args[0]);
-		proceso.setStrProcessName(args[1]);
-		proceso.setStrVersion(args[2]);	
+		try {
+			 
+			// The args[0] contains the service name to execute
+			if (! "".equals(args[0])) {
+				
+				String service =args[0];				
+				if ("LAUNCHORDER".equalsIgnoreCase(service)) {
+					//LaunchOrder service
+					LaunchOrder process = new LaunchOrder(args[1], args[2], args[3]);	
+					OutputParamsLaunchOrder output = process.execProcess();
+				
+					
+				}
+				
+				
+			}
+			
+		}catch(Exception e) {
+			CONSUMER_LOGGER.log(LogLevel.SEVERE, "Error executing " + args[0] + "." + e.getLocalizedMessage());
+			throw new Exception("Error executing " + args[0] + ". Exiting...");
+		}
 		
-		
-		// Lanzamos el proceso
-		if (proceso.execProcess() < 0) {
-			throw new Exception("Error. No se ha podido generar el proceso");
-		};
 
 	}
 
@@ -254,120 +274,92 @@ public class MainClass {
 	 */
 	public MainClass () {
 	
-		try {
-			//leemos la configuracion
-			MainClass.getConfiguration();			
-			
-		}catch(Exception e) {
-			if (getDebugMode()) {
-				System.out.println("------------------------------------------------------------------------------------------");
-				System.out.println("Error creating LanzaProceso Object.");
-			}
-
-		}
 	}
 
 	
 
 	/**
-	 * Abre las conexiones con bbdd
-	 * @param strServicio
-	 *   OMS  -> conexion con el usuario / password para OMS
-	 *   PC   -> conexion con el usuario / password para PC
-	 *   BOTH -> ambas conexiones
+	 * Open db connections
+	 * @param strService
+	 *   LAUNCHORDER  	-> open connection using OMS a PC users 
+	 *   ALL 			-> every defined connection
+	 * @param Credentials<String, String>
+	 * 	    
 	 * @throws SQLException
 	 */
-	private static void openDBConnection(String strServicio) throws SQLException {
+	protected static void openDBConnection(String strService, HashMap<String, String> credentials) throws SQLException {
 
 		if (getDebugMode()) {
-			System.out.println("------------------------------------------------------------------------------------------");
-			System.out.println("Entering openDBConnection with value : " + strServicio);
+			CONSUMER_LOGGER.log(LogLevel.DEBUG, "Entering openDBConnection with value : " + strService);
 		}
 
 		
-		if (!"".equals(strServicio) && ("OMS".equals(strServicio) || "BOTH".equals(strServicio))) {
+		if (!"".equals(strService) && ("LAUNCHORDER".equals(strService) || "ALL".equals(strService))) {
 
-			//abrimos una conexion de Oracle para permitir lanzar procesos 
+			//Open db connection using OMS user
 			try {
 				DriverManager.registerDriver(new oracle.jdbc.OracleDriver());
 				ORACLE_DRIVER_CLFY = "jdbc:oracle:thin:@" + strJdbc_DB + ":" + strJdbc_Port + ":" + strDBName;
-				oraConexionOMS = DriverManager.getConnection(ORACLE_DRIVER_CLFY, strUser_DB_OMS, strPassword_DB_OMS);
+				oraConexionOMS = DriverManager.getConnection(ORACLE_DRIVER_CLFY, (String) credentials.get("DB_USER_OMS"), (String) credentials.get("DB_PASS_OMS"));
 
 				if (getDebugMode()) {
-					System.out.println("------------------------------------------------------------------------------------------");
-					System.out.println("ORACLE OMS connection opened");
+					CONSUMER_LOGGER.log(LogLevel.DEBUG, "ORACLE OMS connection opened");
 				}
 
 			} catch (SQLException sqle) {
 				
 				if (getDebugMode()) {
-					System.out.println("------------------------------------------------------------------------------------------");
-					System.out.println("ERROR Opening Oracle OMS DB connection FAILED: " + sqle.toString());
+					CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR Opening Oracle OMS DB connection FAILED: " + sqle.toString());
 				}
 				
-				throw new SQLException("Error al abrir la conexion Oracle con la bbdd " + strDBName + ":" + strJdbc_Port);
+				throw new SQLException("Error opening Oracle db connection: " + strDBName + ":" + strJdbc_Port);
 			}
-		}
+			
 
-		if (!"".equals(strServicio) && ("PC".equals(strServicio) || "BOTH".equals(strServicio))) {
-
-			//abrimos una conexion de Oracle para permitir lanzar procesos 
+			//Open db connection using PC user
 			try {
 				DriverManager.registerDriver(new oracle.jdbc.OracleDriver());
 				ORACLE_DRIVER_CLFY = "jdbc:oracle:thin:@" + strJdbc_DB + ":" + strJdbc_Port + ":" + strDBName;
-				oraConexionPC = DriverManager.getConnection(ORACLE_DRIVER_CLFY, strUser_DB_PC, strPassword_DB_PC);
+				oraConexionPC = DriverManager.getConnection(ORACLE_DRIVER_CLFY, (String) credentials.get("DB_USER_PC"), (String) credentials.get("DB_PASS_PC"));
 
 				if (getDebugMode()) {
-					System.out.println("------------------------------------------------------------------------------------------");
-					System.out.println("ORACLE PC connection opened");
+					CONSUMER_LOGGER.log(LogLevel.DEBUG, "ORACLE PC connection opened");
 				}
 
 			} catch (SQLException sqle) {
 				
 				if (getDebugMode()) {
-					System.out.println("------------------------------------------------------------------------------------------");
-					System.out.println("ERROR Opening Oracle OMS DB connection FAILED: " + sqle.toString());
+					CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR Opening Oracle PC DB connection FAILED: " + sqle.toString());
 				}
 				
-				throw new SQLException("Error al abrir la conexion Oracle con la bbdd " + strDBName + ":" + strJdbc_Port);
+				throw new SQLException("Error opening Oracle db connection: " + strDBName + ":" + strJdbc_Port);
 			}
+			
 		}
 		
 		
 	}	
 	
 	/**
-	 * Cierra las conexiones abiertas
+	 * Close every opened connection
 	 * @throws SQLException
 	 */
-	private static void closeDBConnection() throws SQLException {
-
+	protected static void closeDBConnection() throws SQLException {
 
 		if (getDebugMode()) {
-			System.out.println("------------------------------------------------------------------------------------------");
-			System.out.println("Entering closeDBConnection");
+			CONSUMER_LOGGER.log(LogLevel.DEBUG, "Entering closeDBConnection");
 		}
 
-		//Si esta abierta la sesion de clfy, la cerramos
-		if (clfySessionOms != null) {
-			clfySessionOms.release();
-		}
-		
-		if (clfySessionPC != null) {
-			clfySessionPC.release();
-		}
-
-		//Si esta abierta la sesion de Oracle, la cerramos
+		//Try to close OMS a PC connection
 		if (oraConexionOMS != null) { 
 			try {
 				oraConexionOMS.close();
 			} catch (SQLException sqle) {
 				if (getDebugMode()) {
-					System.out.println("------------------------------------------------------------------------------------------");
-					System.out.println("ERROR Closing Oracle OMS DB connection FAILED: " + sqle.toString());
+					CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR Closing Oracle OMS DB connection FAILED: " + sqle.toString());
 				}
 					
-				throw new SQLException("Error al cerrar la conexion con la bbdd " + strDBName + ":" + strJdbc_Port);
+				throw new SQLException("Error closing db connection " + strDBName + ":" + strJdbc_Port);
 			}
 		}
 
@@ -376,17 +368,15 @@ public class MainClass {
 				oraConexionPC.close();
 			} catch (SQLException sqle) {
 				if (getDebugMode()) {
-					System.out.println("------------------------------------------------------------------------------------------");
-					System.out.println("ERROR Closing Oracle PC DB connection FAILED: " + sqle.toString());
+					CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR Closing Oracle PC DB connection FAILED: " + sqle.toString());
 				}
 					
-				throw new SQLException("Error al cerrar la conexion con la bbdd " + strDBName + ":" + strJdbc_Port);
+				throw new SQLException("Error closing db connection " + strDBName + ":" + strJdbc_Port);
 			}
 		}
 		
 		if (getDebugMode()) {
-			System.out.println("Connections closed");
-			System.out.println("------------------------------------------------------------------------------------------");
+			CONSUMER_LOGGER.log(LogLevel.INFO, "Connections closed");
 
 		}
 		
@@ -394,142 +384,7 @@ public class MainClass {
 	}
 		
 
-	/**
-	 * Recoge la configuracion de un fichero .properties
-	 * @throws IOException
-	 */
-	private static void getConfiguration() 
-			throws IOException, Exception {
-		
-		try {
-			//Obtenemos los valores del entorno de un fichero .properties
-			Properties properties = new Properties();
-			
-			//Abrimos el fichero
-			File fProp = new File(sRutaIni, sNombreFich);
-			
-			if (!fProp.canRead()) {
-				throw new IOException("No existe el fichero " + fProp.getAbsolutePath());
-			}
-			
-			// Cargamos el .properties y lo cerramos
-			FileInputStream fiProp = new FileInputStream(fProp);
-			properties.load(fiProp);
-			fiProp.close();
-			
-			strURL_WLS = properties.getProperty("WLS_URL");
-			strUser_WLS = properties.getProperty("WLS_USER");
-			strPassword_WLS = properties.getProperty("WLS_PASS");
-			strDS_WLS_OMS = properties.getProperty("WLS_DS_OMS");
-			strDS_WLS_PC =  properties.getProperty("WLS_DS_PC");
-			strDebug = properties.getProperty("DEBUG");
-	
-			strDBName = properties.getProperty("DB");
-			strUser_DB_OMS = properties.getProperty("DB_USER_OMS");;
-			strPassword_DB_OMS = properties.getProperty("DB_PASS_OMS");
-			strUser_DB_PC = properties.getProperty("DB_USER_PC");;
-			strPassword_DB_PC = properties.getProperty("DB_PASS_PC");
-			strJdbc_DB = properties.getProperty("DB_JDBC");
-			strJdbc_Port = properties.getProperty("DB_PORT");
 
-			
-			if ((!"".equals(strDebug)) && "1".equals(strDebug)) {
-				
-				setDebugMode(true);
-				
-				System.out.println("URL:" + strURL_WLS);
-				System.out.println("USER:" + strUser_WLS);
-				//System.out.println("PASS:" + strPassword_WLS); // No mostramos la password en el log
-				System.out.println("DATASOURCE OMS:" + strDS_WLS_OMS);
-				System.out.println("DATASOURCE PC:" + strDS_WLS_PC);
-				System.out.println("----");
-				System.out.println("DB:" + strDBName);			
-				System.out.println("USER_OMS:" + strUser_DB_OMS);
-				System.out.println("USER_PC:" + strUser_DB_PC);
-				//System.out.println("PASS" + strPassword_DB); //No mostramos la password en el log
-				System.out.println("JDBC:" + strJdbc_DB);
-				System.out.println("PORT:" + strJdbc_Port);
-			}
-		}			
-		catch(Exception e) {
-			System.out.println("------------------------------------------------------------------------------------------");
-			System.out.println("ERROR Opening .properties FAILED: " + e.toString());
-			
-			throw new Exception("Error al leer el fichero .properties");
-
-		}
-
-	}	
-	
-
-	/**
-	 * Conecta el proceso con la instacia de WL ejecutandose
-	 * @return 0 -> Conexion OK
-	 *        -1 -> Fallo en la conexion
-	 */
-	private int prepareConnWL() {
-		
-		if (getDebugMode()) {
-			System.out.println("------------------------------------------------------------------------------------------");
-			System.out.println("Entering prepareConnWL");
-		}
-
-		
-		// Generamos la conexions al WL
-		try {
-			// Generamos una configuracion de properties para la conexion
-			Properties propertiesCon = new Properties();
-			propertiesCon.put(InitialContext.INITIAL_CONTEXT_FACTORY, initialContextFactory);
-			propertiesCon.put(InitialContext.PROVIDER_URL, strURL_WLS);
-			if (!"".equals(strUser_WLS) && strUser_WLS != null) {
-				propertiesCon.put(InitialContext.SECURITY_PRINCIPAL, strUser_WLS);
-				propertiesCon.put(InitialContext.SECURITY_CREDENTIALS, strPassword_WLS == null ? "" : MainClass.strPassword_WLS);
-			}
-
-			if (getDebugMode()) {
-				System.out.println("Properties created: ");
-				System.out.println(propertiesCon.toString());
-			}
-			
-			
-			InitialContext context = new InitialContext(propertiesCon);
-			objref = context.lookup("/omsserver_weblogic/amdocs/epi/proxy/session/bean/ProxySessionBean");
-			proxy = (ProxySessionHome) PortableRemoteObject.narrow(objref, ProxySessionHome.class);
-			
-			pSession = proxy.create();
-			tPooledId = pSession.createSession("");
-
-			
-			/*
-			objref = context.lookup("/omsserver_weblogic/amdocs/bpm/ejb/ProcMgrSession");
-			procMgrLocal = (ProcMgrSessionHome) PortableRemoteObject.narrow(objref, ProcMgrSessionHome.class);
-			procSess = procMgrLocal.create();
-			*/
-			//tPooledId = procSess.createProcMgrSession(IdGen.uniqueId());
-			
-
-			if (getDebugMode()) {
-				System.out.println("Session created: ");
-				System.out.println(tPooledId.toString());
-			}
-			
-			return 0;
-			
-		}catch(Exception e){
-			
-			if (getDebugMode()) {
-				System.out.println("------------------------------------------------------------------------------------------");
-				System.out.println("ERROR APM Session initialization FAILED: " + e.toString());
-			}
-			
-			if (e.toString().contains("javax.naming.NameNotFoundException")) {
-				
-			}
-			return -1;
-		}
-		
-	}
-	
 	
 	/**
 	 * Lanzamiento proceso. Genera todos los objetos necesarios recuperandolos de BBDD

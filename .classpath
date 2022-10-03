@@ -13,12 +13,13 @@
 	<classpathentry kind="lib" path="lib/AmdocsProcMgrEmitted.jar"/>
 	<classpathentry kind="lib" path="lib/AmdocsProcMgrEngineExample.jar"/>
 	<classpathentry kind="lib" path="lib/ofc.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jre6"/>
 	<classpathentry kind="lib" path="lib/AmdocsCore.jar"/>
 	<classpathentry kind="lib" path="lib/uams.jar"/>
 	<classpathentry kind="lib" path="lib/AmdocsProcMgrApplication.jar"/>
 	<classpathentry kind="lib" path="lib/AmdocsProcMgrProxy.jar"/>
 	<classpathentry kind="lib" path="lib/jakarta-regexp-1.2.jar"/>
 	<classpathentry kind="lib" path="lib/AmdocsAif.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/AmdocsOrderingCihSpnLayer.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
