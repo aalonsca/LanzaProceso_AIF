@@ -1,4 +1,4 @@
-package es.neoris.operations.oms.launchorder;
+package es.neoris.operations.oms.launchOrder;
 
 import java.io.Serializable;
 import java.util.HashMap;
