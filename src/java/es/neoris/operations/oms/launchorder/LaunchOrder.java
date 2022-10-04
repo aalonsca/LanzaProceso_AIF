@@ -26,8 +26,11 @@ import com.amdocs.cih.services.oms.lib.StartOrderOutput;
 import com.amdocs.cih.services.oms.rvt.domain.OrderActionStatusRVT;
 import com.amdocs.cih.services.oms.rvt.domain.OrderActionTypeRVT;
 import com.amdocs.cih.services.oms.rvt.domain.OrderActionUserActionRVT;
+import com.amdocs.cih.services.oms.rvt.domain.OrderModeRVT;
+import com.amdocs.cih.services.oms.rvt.domain.OrderStatusRVT;
 import com.amdocs.cih.services.oms.rvt.referencetable.SalesChannelRVT;
 import com.amdocs.cih.services.order.lib.OrderHeader;
+import com.amdocs.cih.services.order.lib.OrderID;
 import com.amdocs.cih.services.orderaction.lib.OrderAction;
 import com.amdocs.cih.services.orderaction.lib.OrderActionData;
 import com.amdocs.cih.services.orderaction.lib.OrderActionDetails;
@@ -37,6 +40,8 @@ import com.amdocs.cih.services.subscription.lib.SubscriptionGroupID;
 
 import amdocs.core.logging.LogLevel;
 import amdocs.core.logging.Logger;
+import amdocs.oms.infra.domains.dynamic.DynOrderModeTP;
+import amdocs.oms.infra.domains.dynamic.DynOrderModeTP.DynOrderMode;
 import es.neoris.operations.MainClass;
 
 /**
@@ -322,25 +327,7 @@ extends es.neoris.operations.MainClass
       		StartOrderOutput output = service.startOrder(m_input.getAppContext(), m_input.getOrderContext(), m_input.getOrder(), m_input.getMask());
       		
       		if (output != null) {
-      			
       			out.setM_order(output);
-				//Guardamos el objid recuperado en un fichero de texto
-				BufferedWriter bw = null;
-				try {
-					File fichero = new File(sRutaIni + "/out", this.getStrIDContract() + "_" + this.getStrVersion());
-					bw = new BufferedWriter(new FileWriter(fichero));
-					bw.write(output.getOrderID().toString());
-	
-				} catch (IOException e) {
-					if (getDebugMode()) {
-						CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR handling output file : " + e.toString());	
-					}
-						
-				} finally {
-					try {
-						bw.close();
-					} catch (Exception e) {}
-				}
 					
       		}
 		} catch (Exception e) {
@@ -354,14 +341,6 @@ extends es.neoris.operations.MainClass
 			try {
 				// cerramos las conexiones
 				MainClass.closeDBConnection();
-				
-	      		
-				/* PARA PRUEBAS CON WL CAIDO
-				session.endTransaction(commit);
-				clfyAppOms.release();
-				clfyAppPC.release();
-				session.close();
-				*/
 				
 			}catch (Exception e1) {
 				if (getDebugMode()) {
@@ -501,16 +480,30 @@ extends es.neoris.operations.MainClass
 					OrderActionUserAction[] ouAct = null;
 					OrderActionUserActionRVT oauAct = new OrderActionUserActionRVT();					
 					ouAct[0].setAction(oauAct);
-					
+
+					//OrderID
+					// -------------------------
+					OrderID orderID = new OrderID();
+					orderID.setOrderID(orderId);
+
+					//OrderModeRVT
+					// -------------------------
+					OrderModeRVT OrderMode = new OrderModeRVT(result.getString(2));
+
+					//OrderStatus
+					// -------------------------
+					OrderStatusRVT orderStatus = new OrderStatusRVT(result.getString(5));
+
 					//OrderHeader
 					// -------------------------
 					OrderHeader oh = new OrderHeader();
-
-					oh.setOrderID(this.inputOrder.getOrderID());
-					oh.setOrderMode(this.inputOrder.getOrderDetails().getOrderMode());
-					oh.setOrderStatus(this.inputOrder.getOrderDetails().getOrderStatus());
-					oh.setApplicationDate(this.inputOrder.getOrderDetails().getApplicationDate());
-					oh.setServiceRequiredDate(this.inputOrder.getOrderDetails().getServiceRequiredDate());
+					
+					oh.setOrderID(orderID);
+					oh.setOrderMode(OrderMode);
+					oh.setOrderStatus(orderStatus);
+					oh.setApplicationDate(result.getDate(13));					
+					oh.setServiceRequiredDate(result.getDate(11));
+					
 					oh.setSalesChannel(this.inputOrder.getOrderDetails().getSalesChannel());
 					oh.setExpiryDate(this.inputOrder.getOrderDetails().getExpiryDate());
 					oh.setCustomerOrderID(this.inputOrder.getOrderDetails().getCustomerOrderID());

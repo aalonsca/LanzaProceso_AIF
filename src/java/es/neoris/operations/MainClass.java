@@ -149,50 +149,23 @@ public class MainClass {
 	
 	// Variables to control session
 	protected static Application app = null;
-	
-	private Object objref = null;
-	private EpiSessionId tPooledId = null;
-	private ProcMgrSession procSess = null;
-	private ProcMgrSessionHome procMgrLocal = null;
-	private ProxySession pSession = null; 
-	private IlSession session = null;
-
-	private ProxySessionHome proxy = null;
-	
 			
-	
-	protected String salesChannel = null;
-	protected static Application clfyAppOms = null;
-	protected static Session clfySessionOms = null;
-	protected static Application clfyAppPC = null;
-	protected static Session clfySessionPC = null;
 	protected static Connection oraConexionOMS = null;
 	protected static Connection oraConexionPC = null;
-	protected static SqlExec clfySqlExecOms = null;
-	protected static SqlExec clfySqlExecPC = null;
-	
-	protected OmOrder order = null;
-	protected Order inputOrder = null;
-	protected StartOrderInput startOrderInput = null;
-	protected PcProcessDefinition processDef = null;
-	
 	protected static boolean DebugMode = false;
-	//++paco
-	protected static HashMap<String, Object> settingMap = new HashMap<String, Object>();
-	protected static Object m_TableNameReplacementConfigObj = null;
-	protected static Object m_PartitionerInitialValueConfigObj = null;
-	protected static Object m_LogTransContentsOnRollbackConfigObj = null;
-	
-	protected static DataManagerFactory dManagerFactory = null;	
-	protected static DataManagerCls DataManager = null;	
-	//--paco
+
+	// Variables to retrieve the results
+	static final String sDirEject = "es/neoris/operations/oms/launchorder";
+	static final String sRutaIni = System.getProperty(sDirEject, ".");
+
 
 	/**
-	 * Funcion de entrada
+	 * Main function
 	 * @param args
-	 *   0 -> id de la orden
-	 *   1 -> name del proceso
-	 *   2 -> version del proceso
+	 *   0 -> service name
+	 *   1 -> id order
+	 *   2 -> process name
+	 *   3 -> process version
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
@@ -215,6 +188,26 @@ public class MainClass {
 					//LaunchOrder service
 					LaunchOrder process = new LaunchOrder(args[1], args[2], args[3]);	
 					OutputParamsLaunchOrder output = process.execProcess();
+					
+					//Guardamos el objid recuperado en un fichero de texto
+					BufferedWriter bw = null;
+					try {
+						
+						File fichero = new File(sRutaIni + "/out", process.getStrIDContract() + "_" + process.getStrVersion());
+						bw = new BufferedWriter(new FileWriter(fichero));
+						bw.write(output.getM_order().getOrderID().toString());
+		
+					} catch (IOException e) {
+						if (getDebugMode()) {
+							CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR handling output file : " + e.toString());	
+						}
+							
+					} finally {
+						try {
+							bw.close();
+						} catch (Exception e) {}
+					}
+					
 					
 				}
 			}
@@ -344,33 +337,12 @@ public class MainClass {
 		
 
 	// GETTERS Y SETTERS
-	protected OmOrder getOrder() {
-		return order;
-	}
-	protected void setOrder(OmOrder order) {
-		this.order = order;
-	}
-	protected String getSalesChannel() {
-		return salesChannel;
-	}
-	protected void setSalesChannel(String salesChannel) {
-		this.salesChannel = salesChannel;
-	}
-
 	protected static boolean getDebugMode() {
 		return DebugMode;
 	}
 
 	protected static void setDebugMode(boolean debugMode) {
 		DebugMode = debugMode;
-	}
-
-	protected PcProcessDefinition getProcessDef() {
-		return processDef;
-	}
-
-	protected void setProcessDef(PcProcessDefinition processDef) {
-		this.processDef = processDef;
 	}
 
 	
