@@ -7,106 +7,37 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Properties;
 
 import javax.naming.InitialContext;
 import javax.rmi.PortableRemoteObject;
 
+import com.amdocs.cih.common.core.MaskInfo;
+import com.amdocs.cih.common.core.sn.ApplicationContext;
 import com.amdocs.cih.common.datatypes.DynamicAttribute;
 import com.amdocs.cih.common.datatypes.OrderActionUserAction;
-import com.amdocs.cih.common.datatypes.OrderUserAction;
+import com.amdocs.cih.common.datatypes.OrderingContext;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemote;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemoteHome;
 import com.amdocs.cih.services.oms.lib.StartOrderInput;
+import com.amdocs.cih.services.oms.lib.StartOrderOutput;
 import com.amdocs.cih.services.oms.rvt.domain.OrderActionStatusRVT;
 import com.amdocs.cih.services.oms.rvt.domain.OrderActionTypeRVT;
 import com.amdocs.cih.services.oms.rvt.domain.OrderActionUserActionRVT;
-import com.amdocs.cih.services.oms.rvt.domain.OrderModeRVT;
-import com.amdocs.cih.services.oms.rvt.domain.OrderStatusRVT;
-import com.amdocs.cih.services.oms.rvt.domain.OrderUserActionRVT;
 import com.amdocs.cih.services.oms.rvt.referencetable.SalesChannelRVT;
-import com.amdocs.cih.services.order.lib.Order;
-import com.amdocs.cih.services.order.lib.OrderDetails;
 import com.amdocs.cih.services.order.lib.OrderHeader;
-import com.amdocs.cih.services.order.lib.OrderID;
 import com.amdocs.cih.services.orderaction.lib.OrderAction;
 import com.amdocs.cih.services.orderaction.lib.OrderActionData;
 import com.amdocs.cih.services.orderaction.lib.OrderActionDetails;
 import com.amdocs.cih.services.orderaction.lib.OrderActionID;
 import com.amdocs.cih.services.party.lib.OrganizationID;
-import com.amdocs.cih.services.party.lib.PersonHeader;
-import com.amdocs.cih.services.party.lib.PersonID;
 import com.amdocs.cih.services.subscription.lib.SubscriptionGroupID;
-import com.clarify.cbo.SqlExec;
 
-import amdocs.core.logging.Logger;
-import amdocs.epi.datamanager.DataManagerCls;
-import amdocs.epi.lock.DistributedLockManager;
-import amdocs.epi.lock.LockManagerFactory;
-import amdocs.epi.proxy.session.bean.ProxySession;
-import amdocs.epi.proxy.session.bean.ProxySessionHome;
-import amdocs.epi.session.EpiSessionContext;
-import amdocs.epi.session.EpiSessionId;
-import amdocs.epi.util.EpiCollections;
-import amdocs.epi.util.IdGen;
-import amdocs.epi.util.ListSet;
-import amdocs.epi.util.params.StringHolder;
-import amdocs.ofc.process.BaseProcInst;
-import amdocs.ofc.process.BaseStepInst;
-import amdocs.ofc.process.Milestone;
-import amdocs.ofc.process.MilestoneStep;
-import amdocs.ofc.process.ProcessCreateInfo;
-import amdocs.oms.apcore.ApItem;
-import amdocs.oms.bpaproxy.OmsBpaCase;
-import amdocs.oms.cih.mapping.CihOrderActionFilter;
-import amdocs.oms.infra.IlSession;
-import amdocs.oms.infra.domains.ActionTypeTP;
-import amdocs.oms.infra.domains.BooleanValTP;
-import amdocs.oms.infra.domains.ConfigurationTP;
-import amdocs.oms.infra.domains.LanguageCodeTP;
-import amdocs.oms.infra.domains.MilestoneStatusTP;
-import amdocs.oms.infra.domains.OrderActionParentRelationTP;
-import amdocs.oms.infra.domains.OrderActionStatusTP;
-import amdocs.oms.infra.domains.OrderStatusTP;
-import amdocs.oms.infra.domains.OrderUnitTypeTP;
-import amdocs.oms.infra.domains.RecontactPeriodTP;
-import amdocs.oms.infra.domains.ActionTypeTP.ActionType;
-import amdocs.oms.infra.domains.BooleanValTP.BooleanVal;
-import amdocs.oms.infra.domains.LanguageCodeTP.LanguageCode;
-import amdocs.oms.infra.domains.OrderActionParentRelationTP.OrderActionParentRelation;
-import amdocs.oms.infra.domains.OrderActionStatusTP.OrderActionStatus;
-import amdocs.oms.infra.domains.OrderStatusTP.OrderStatus;
-import amdocs.oms.infra.domains.OrderUnitTypeTP.OrderUnitType;
-import amdocs.oms.infra.domains.RecontactPeriodTP.RecontactPeriod;
-import amdocs.oms.infra.domains.dynamic.DynOrderModeTP;
-import amdocs.oms.infra.domains.dynamic.DynOrderModeTP.DynOrderMode;
-import amdocs.oms.ocs.InitialProcessService;
-import amdocs.oms.oem.OmOrder;
-import amdocs.oms.oem.OmOrderAction;
-import amdocs.oms.oem.OmOrderHolder;
-import amdocs.oms.osmancust.OmOrderAddition;
-import amdocs.oms.pc.PcProcessDefinition;
-import amdocs.oms.pc.PcProcessDefinitionAug;
-import amdocs.oms.rootset.AlRootSet;
-import amdocs.oms.rootset.RootSetBase;
-import es.neoris.operations.MainClass;
-import amdocs.bpm.BusinessProcess;
-import amdocs.bpm.FocusKind;
-import amdocs.bpm.ProcInstManager;
-import amdocs.bpm.ProcInstManagerFactory;
-import amdocs.bpm.ProcInstTraversal;
-import amdocs.bpm.ProcessStatus;
-import amdocs.bpm.RootCreateInfo;
-import amdocs.bpm.Step;
-import amdocs.bpm.ejb.ProcMgrSession;
-import amdocs.bpm.ejb.ProcMgrSessionHome;
 import amdocs.core.logging.LogLevel;
+import amdocs.core.logging.Logger;
+import es.neoris.operations.MainClass;
 
 /**
  * @author Neoris
@@ -130,20 +61,13 @@ extends es.neoris.operations.MainClass
 	private static String strDS_WLS_PC = null;
 	private static String strDebug = null;
 	private static String strDBName = null;
-	private static String strJdbc_DB = null;
-	private static String strJdbc_Port = null;
 
 	
 	// Properties for WL connection
 	private static final String JNDI = "com/amdocs/cih/services/oms/interfaces/IOmsServicesRemote";
 	private final static String initialContextFactory = "weblogic.jndi.WLInitialContextFactory";
 	private Object objref = null;
-	private EpiSessionId tPooledId = null;
-	private ProcMgrSession procSess = null;
-	private ProcMgrSessionHome procMgrLocal = null;
-	private ProxySession pSession = null; 
-	private IlSession session = null;
-	
+	private IOmsServicesRemote service = null;
 	
 	// Input variables from main classes
 	private String m_strIDContract;
@@ -155,11 +79,37 @@ extends es.neoris.operations.MainClass
 	private InputParamsLaunchOrder m_input;
 	private OutputParamsLaunchOrder m_output;
 	
+	// Queries to get order info from db
+	private String strQueryProcessDef = "SELECT P.CID, P.PCVERSION_ID, P.PROCESS_MAP_ACTION, P.LINE_OF_BUSINESS, P.SALES_CHANNEL  FROM TBPROCESS P WHERE P.PROCESS_MAP_NAME = '%1'";
+	private String strQueryOmsOrder = "SELECT T.CTDB_LAST_UPDATOR, T.ORDER_MODE, T.GROUP_ID, T.ROOT_CUSTOMER_ID, T.STATUS, T.OPPORTUNITY_ID, T.CURRENT_SALES_CHANNEL, T.DEALER_CODE, T.ADDRESS_ID, T.EXT_REF_NUM" // 10
+									 + ", SERVICE_REQ_DATE, CREATION_DATE, APPLICATION_DATE, PROP_EXPIRY_DATE, CUST_ORDER_REF, CONTACT_ID, CUSTOMER_ID, DEPOSIT_ID, ORDER_UNIT_ID" // 20
+									 + ", ORDER_UNIT_TYPE, PRIORITY, PROP_EXPIRY_DATE, RECONTACT_IN_MONTH, RECONTACT_IN_YEAR, RECONTACT_PERIOD, SOURCE_ORDER" // 30
+									 + " FROM TBORDER T"
+									 + " WHERE T.REFERENCE_NUMBER = '%1'";
+	
+	private String strQuerOmsOrderAction = "SELECT T.ORDER_UNIT_ID, T.PARENT_ORDER_UNIT, T.ORDER_ID, T.STATUS, T.ACTION_TYPE, T.DUE_DATE, T.AP_ID, T.PARENT_RELATION, T.MAIN_IND, T.AP_VERSION_ID" // 10"
+									+ ", CONFIGURATION, LANGUAGE, PARENT_ASSOCIATED_ID, SERVICE_REQ_DATE, PRIORITY, APPLICATION_DATE" // 16
+									+ ", ORG_OWNER_ID, CONTACT_ID, CUSTOMER_ID, REFERENCE_NUMBER, CREATOR_ID, APPLICATION_REF_ID"  //22
+									+ ", ORDER_UNIT_TYPE, APPLICATION_NAME, EXT_REF_NUM, CREATION_DATE, SALES_CHANNEL, REASON_ID"	//28
+									+ ", GROUP_ID, DYNAMIC_ATTRS, CUST_ORDER_REF, APPLICATION_REF_ID, EARLY_DATE, EXT_REF_REMARK"	//34
+									+ ", ITEM_PARTITION_KEY, PRIVS_KEY, QSEQUENCE_NUM, QUANTITY, REASON_FREE_TEXT"	//39
+									+ ", CUST_WILL_RCNT_IND, RECONTACT_PERIOD, RECONTACT_IN_MONTH, RECONTACT_IN_YEAR, REPLACED_OFFER_AP_ID"	//44
+									+ ", REQUEST_LINE_ID"	//45
+									+ " FROM TBORDER_ACTION T"
+									+ " WHERE T.ORDER_ID = '%1'"
+									+ " ORDER BY T.ORDER_UNIT_ID";
+	
+	private String strQueryBPM = "SELECT ID, BYTECODE, NAME, VERSION, OBJID, DEFINITION, STATUS, DEFINITION_VERSION, FOCUS_KIND, FOCUS_TYPE " // 10
+								 + " FROM TABLE_BPM_PROCESS "
+								 + " WHERE NAME = '%1'"
+								 + " AND VERSION = '%2'";
+	
+	
 	/**
-	 * Default no-op constructor
+	 * Default no-operative constructor
 	 */
-	public LaunchOrder() {
-		/* default no-op constructor */
+	public LaunchOrder() throws Exception {
+		throw new Exception("Cannot create object. Use LaunchOrder(String, String, String) instead.");
 	}
 	
 	
@@ -173,7 +123,7 @@ extends es.neoris.operations.MainClass
 	public LaunchOrder(String strIDContract, String strProcessName, String strVersion ) 
 			throws Exception {
 
-		// Init class properties
+		// Initialize class properties
 		setStrIDContract(strIDContract);
 		setStrProcessName(strProcessName);
 		setStrVersion(strVersion);
@@ -184,12 +134,12 @@ extends es.neoris.operations.MainClass
 		}
 		catch (Exception e) {
 			CONSUMER_LOGGER.log(LogLevel.SEVERE, "Error getting " + this.sNombreFich + ": " + e.getLocalizedMessage());
-			throw new Exception("Error al leer el fichero .properties");
+			throw new Exception("Error reading .properties file");
 			
 		}
 		
 	}
-	
+
 
 	/**
 	 * Gets service configuration from .properties file
@@ -199,7 +149,7 @@ extends es.neoris.operations.MainClass
 			throws IOException, Exception {
 		
 		try {
-			//Get enviroment values from .propertis
+			//Get environment values from .properties
 			Properties properties = new Properties();
 			
 			//Open file
@@ -213,7 +163,6 @@ extends es.neoris.operations.MainClass
 			FileInputStream fiProp = new FileInputStream(fProp);
 			properties.load(fiProp);
 			fiProp.close();
-			
 		
 			strURL_WLS = properties.getProperty("WLS_URL");
 			strUser_WLS = properties.getProperty("WLS_USER");
@@ -222,21 +171,19 @@ extends es.neoris.operations.MainClass
 			strDS_WLS_PC =  properties.getProperty("WLS_DS_PC");
 			strDebug = properties.getProperty("DEBUG");
 	
-			strDBName = properties.getProperty("DB");
-			// Loading credentials
+			// Loading data for db connection
 			m_credential.put("DB_USER_OMS", properties.getProperty("DB_USER_OMS"));
 			m_credential.put("DB_PASS_OMS", properties.getProperty("DB_PASS_OMS"));
 			m_credential.put("DB_USER_PC", properties.getProperty("DB_USER_PC"));
 			m_credential.put("DB_PASS_PC", properties.getProperty("DB_PASS_PC"));
-
-			strJdbc_DB = properties.getProperty("DB_JDBC");
-			strJdbc_Port = properties.getProperty("DB_PORT");
-
+			m_credential.put("DB_NAME", properties.getProperty("DB"));
+			m_credential.put("JDBC_DB", properties.getProperty("DB_JDBC"));
+			m_credential.put("JDBC_PORT", properties.getProperty("DB_PORT"));
+			
 			
 			if ((!"".equals(strDebug)) && "1".equals(strDebug)) {
 				
 				setDebugMode(true);
-				
 				CONSUMER_LOGGER.log(LogLevel.INFO, "URL:" + strURL_WLS);
 				CONSUMER_LOGGER.log(LogLevel.INFO, "USER:" + strUser_WLS);
 				CONSUMER_LOGGER.log(LogLevel.INFO, "DATASOURCE OMS:" + strDS_WLS_OMS);
@@ -244,11 +191,11 @@ extends es.neoris.operations.MainClass
 				CONSUMER_LOGGER.log(LogLevel.INFO, "DB:" + strDBName);			
 				CONSUMER_LOGGER.log(LogLevel.INFO, "USER_OMS:" + m_credential.get("DB_USER_OMS"));
 				CONSUMER_LOGGER.log(LogLevel.INFO, "USER_PC:" + m_credential.get("DB_USER_PC"));
-				CONSUMER_LOGGER.log(LogLevel.INFO, "JDBC:" + strJdbc_DB);
-				CONSUMER_LOGGER.log(LogLevel.INFO, "PORT:" + strJdbc_Port);
+				CONSUMER_LOGGER.log(LogLevel.INFO, "JDBC:" + m_credential.get("JDBC_DB"));
+				CONSUMER_LOGGER.log(LogLevel.INFO, "PORT:" + m_credential.get("JDBC_PORT"));
 			}
-		}			
-		catch(Exception e) {
+
+		}catch(Exception e) {
 			
 			CONSUMER_LOGGER.log(LogLevel.SEVERE,"ERROR Opening .properties FAILED: " + e.toString()); 
 			throw new Exception("Error loading .properties file. Exiting...");
@@ -256,11 +203,10 @@ extends es.neoris.operations.MainClass
 		}
 
 	}		
-	
 
 
 	/**
-	 * Prepared WL connection to execute the opertaion
+	 * Prepared WL connection to execute the operation
 	 * @return 0 -> OK
 	 *        -1 -> Error connecting
 	 */
@@ -269,7 +215,6 @@ extends es.neoris.operations.MainClass
 		if (getDebugMode()) {
 			CONSUMER_LOGGER.log(LogLevel.INFO,"Entering prepareConnWL..."); 
 		}
-
 		
 		// Generating WL connection
 		try {
@@ -290,33 +235,13 @@ extends es.neoris.operations.MainClass
 			// Open a RMI connection to server
 			InitialContext context = new InitialContext(propertiesCon);
 			objref = context.lookup(JNDI);
-			IOmsServicesRemote AIFservice = (IOmsServicesRemote) PortableRemoteObject.narrow(objref, IOmsServicesRemote.class);
+			IOmsServicesRemoteHome AIFservice = (IOmsServicesRemoteHome) PortableRemoteObject.narrow(objref, IOmsServicesRemoteHome.class);
+			service = AIFservice.create();
 			
 			
 			
-			/*
-			objref = context.lookup("/omsserver_weblogic/amdocs/bpm/ejb/ProcMgrSession");
-			procMgrLocal = (ProcMgrSessionHome) PortableRemoteObject.narrow(objref, ProcMgrSessionHome.class);
-			procSess = procMgrLocal.create();
-			*/
-			/*
-			proxy = (ProxySessionHome) PortableRemoteObject.narrow(objref, ProxySessionHome.class);
-			
-			pSession = proxy.create();
-			tPooledId = pSession.createSession("");
-			 */
-			
-			/*
-			objref = context.lookup("/omsserver_weblogic/amdocs/bpm/ejb/ProcMgrSession");
-			procMgrLocal = (ProcMgrSessionHome) PortableRemoteObject.narrow(objref, ProcMgrSessionHome.class);
-			procSess = procMgrLocal.create();
-			*/
-			//tPooledId = procSess.createProcMgrSession(IdGen.uniqueId());
-			
-
 			if (getDebugMode()) {
-				System.out.println("Session created: ");
-				System.out.println(tPooledId.toString());
+				CONSUMER_LOGGER.log(LogLevel.INFO,"Session created.");
 			}
 			
 			return 0;
@@ -324,190 +249,105 @@ extends es.neoris.operations.MainClass
 		}catch(Exception e){
 			
 			if (getDebugMode()) {
-				System.out.println("------------------------------------------------------------------------------------------");
-				System.out.println("ERROR APM Session initialization FAILED: " + e.toString());
+				CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR APM Session initialization FAILED: " + e.toString());
 			}
 			
-			if (e.toString().contains("javax.naming.NameNotFoundException")) {
-				
-			}
 			return -1;
 		}
 		
 	}
-		
+	
 
 	/**
-	 * Lanzamiento proceso. Genera todos los objetos necesarios recuperandolos de BBDD
-	 * @return 0 --> Lanzamiento OK
-	 *        -1 --> Error en el lanzamiento
+	 * Generate and execute process related to TBORDER 
+	 * @return 0 --> OK
+	 *        -1 --> ERROR
 	 */
-	private int execProcess() {
-
+	public OutputParamsLaunchOrder execProcess() {
+		OutputParamsLaunchOrder out = new OutputParamsLaunchOrder();
+		
 		boolean commit = true;
 
 		if (getDebugMode()) {
-			System.out.println("------------------------------------------------------------------------------------------");
-			System.out.println("Entering execProcess ");
+			CONSUMER_LOGGER.log(LogLevel.DEBUG, "Entering execProcess");			
 		}
 		
-		 //PARA LAS PRUEBAS CON WL CAIDO
+		 //Open WL connection through RMI
 		if (prepareConnWL() < 0) {
-
 			if (getDebugMode()) {
-				System.out.println("ERROR WL connection failed. Exiting...");
+				CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR WL connection failed. Exiting...");				
 			}
-
-			return -1;
+			return out;
 		}
 		
-		 
-		
-		// Generamos los objetos necesarios para lanzar el proceso asociado a la orden
+		// Calculate mandatory info to generate input object 
 		try {
-	          String caseId = null;
-	          StringHolder caseIdH = new StringHolder(caseId);
-	          	  
-	          session = (IlSession) EpiSessionContext.findSession(tPooledId);	     
-	          	          
+	          
+	          /* TO DO --> Enganchar la sesion con el EJB al que nos hemos conectado
+	          //session = (IlSession) EpiSessionContext.findSession(tPooledId);	     
 	          session.startTransaction();  // Llamamos asi, aunque es static, para garantizar que se use la sesion a la que nos hemos conectado
-			  
+          
 			  if (getDebugMode()) {
 				System.out.println("Transaction started: ");
 				System.out.println(session.toString());
+				CONSUMER_LOGGER.log(LogLevel.DEBUG, "Transaction started: " + session.toString());	
 			  }
-
+			  */
 	          
-      		// generamos las conexiones
-      		MainClass.openDBConnection("BOTH");
-      		//if (("".equals(clfySessionOms.getSessionTag())) && ("".equals(clfySessionPC.getSessionTag()))) {
-      		if (oraConexionPC == null || oraConexionOMS == null) {
-      			// Si no hemos podido abrir las sesiones, salimos del procedimiento. 
+      		// Open db connections...
+      		MainClass.openDBConnection("LAUNCHORDER", getM_credential());
+      		if (MainClass.oraConexionPC == null || MainClass.oraConexionOMS == null) {
+      			// An error occurred. Exit method 
 				if (getDebugMode()) {
-					System.out.println("ERROR checking DB connections. Exiting");
+					CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR checking DB connections. Exiting");	
 				}
-    			return -1;
+    			return out;
       		}
+
+
+      		// Fill the input object: m_input
+      		// ApplicationContext 
+      		m_input.setAppContext(getInputAppContext());
       		
-			//Recuperamos la info del proceso a lanzar
-      		//this.setProcessDef(getProcessDetails(clfySqlExecPC, getStrProcessName()));
-      		this.setProcessDef(getProcessDetails(oraConexionPC, getStrProcessName()));  
-      		if (this.getProcessDef() == null) {
-				if (getDebugMode()) {
-					System.out.println("------------------------------------------------------------------------------------------");
-					System.out.println("ERROR cannot get process definition. Exiting");
-				}
+      		// OrderingContext
+      		m_input.setOrderContext(getInputOrderingContext());
+      		
+      		// StartOrderInput
+      		m_input.setOrder(getStartOrderInput(MainClass.oraConexionOMS, getStrIDContract()));
+      		
+      		// MaksInfo
+      		m_input.setMask(getInputMaskInfo());
 
-      			return -1;
-      		}	
-
-      		//recuperamos los valores de la orden a partir del id
-			try {
-				
-				 if (getDebugMode()) {
-					System.out.println("Creating order objects... ");
-				 }
-				
-	      		//generamos el objeto OmOrder
-	      		//this.order = getOmOrderDetails(clfySqlExecOms, getStrIDContract());
-	      		this.order = getOmOrderDetails(oraConexionOMS, getStrIDContract());
-	      		this.inputOrder = getInputOrderDetails(this.order);
-	      		
-	      		//this.startOrderInput = getStartOrderInput(clfySqlExecOms, this.order.getsourceOrder());
-	      		this.startOrderInput = getStartOrderInput(oraConexionOMS, this.order.getsourceOrder());
-
-				 if (getDebugMode()) {
-					System.out.println("Order objects created");
-				 }
-
-				String custID = this.order.getrootCustomerId();
-						
-				//Nos quedamos con la ultima OA (se obtienen ordenadas)
-				ListSet oma = this.order.getOMORDER_ACTION_CHILDs();					
-				OmOrderAction existingOA = (OmOrderAction) oma.get(oma.size());
-						
-				//Recorremos los distintos Order Action que se hayan recuperado
-				for (int i = 0; i < startOrderInput.getOrderActionsData().length; i++){
-
-					if (getDebugMode()) {
-						System.out.println("Loop over order actions");
-					}
-
-					OrderActionData oaData = this.startOrderInput.getOrderActionsData()[i];
-					OrderActionDetails oaDetails = oaData.getOrderActionInfo().getOrderActionDetails();
-					String actionType = oaDetails.getActionType().getValueAsString();
-					ActionTypeTP.ActionType oaType = (ActionTypeTP.ActionType)ActionTypeTP.def.findByCodeNoAutoCreate(actionType);
-							
-					String lineOfBusiness = null;
-					if (oaDetails.getLineOfBusiness() != null)
-						lineOfBusiness = oaDetails.getLineOfBusiness().getValueAsString();
-							
-					Date serviceRequiredDate = oaDetails.getServiceRequireDate();
-
-					if (getDebugMode()) {
-						System.out.println("Creating creationInfo object");
-					}
-
-					InitialProcessService.OrderActionCreationInfo creationInfo = new InitialProcessService.OrderActionCreationInfo(oaType, this.order.getcurrentSalesChannel(), lineOfBusiness, serviceRequiredDate);
-
-					DynamicAttribute[] dynamicAttrs = oaData.getDynamicAttributes();
-					if (dynamicAttrs != null) 
-						creationInfo.dynamicAttributes = CihOrderActionFilter.createDynamicAttributesMap(dynamicAttrs);
-
-
-					if (getDebugMode()) {
-						System.out.println("Starting and executing process");
-					}
-
-					//Lanzamos el proceso
-					//caseIdH = startProcess(clfySqlExecOms, creationInfo, custID, existingOA, oaData);
-					caseIdH = startProcess(oraConexionOMS, creationInfo, custID, existingOA, oaData);
-							
-					// y recuperamos el caseid generado
-					if (caseIdH.value != null) {
-								
-						caseId = caseIdH.value;
-						this.setStrObjidLanzado(caseId);
-								
-						if (getDebugMode()) {
-							System.out.println("Launched process id: " + caseId);
-						}
-
-						//Guardamos el objid recuperado en un fichero de texto
-						BufferedWriter bw = null;
-						try {
-							File fichero = new File(sRutaIni + "/out", this.getStrIDContract() + "_" + this.getStrVersion());
-							bw = new BufferedWriter(new FileWriter(fichero));
-							bw.write(this.getStrObjidLanzado());
-
-						} catch (IOException e) {
-							if (getDebugMode()) {
-								System.out.println("ERROR handling output file : " + e.toString());
-							}
-								
-						} finally {
-							try {
-								bw.close();
-							} catch (Exception e) {}
-						}
-					}
-				}
-			} catch (Exception e) {
+      		//Call the AIF Service
+      		StartOrderOutput output = service.startOrder(m_input.getAppContext(), m_input.getOrderContext(), m_input.getOrder(), m_input.getMask());
+      		
+      		if (output != null) {
+      			
+      			out.setM_order(output);
+				//Guardamos el objid recuperado en un fichero de texto
+				BufferedWriter bw = null;
+				try {
+					File fichero = new File(sRutaIni + "/out", this.getStrIDContract() + "_" + this.getStrVersion());
+					bw = new BufferedWriter(new FileWriter(fichero));
+					bw.write(output.getOrderID().toString());
 	
-				if (getDebugMode()) {
-					System.out.println("ERROR generic exception creating session objects" );
-					System.out.println(e.toString());
+				} catch (IOException e) {
+					if (getDebugMode()) {
+						CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR handling output file : " + e.toString());	
+					}
+						
+				} finally {
+					try {
+						bw.close();
+					} catch (Exception e) {}
 				}
-				return -1;
-			}
-				
-				
+					
+      		}
 		} catch (Exception e) {
 			if (getDebugMode()) {
-				System.out.println("ERROR al generar los objetos de conexion al APM");
-				System.out.println(e.toString());
+				CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR creating connection to WL: " + e.toString());
 			}
-			return -1;
+			return out;
 			
 		} finally {
 			
@@ -525,691 +365,54 @@ extends es.neoris.operations.MainClass
 				
 			}catch (Exception e1) {
 				if (getDebugMode()) {
-					System.out.println("ERROR closing connections");
-					System.out.println(e1.toString());
+					CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR closing db connections: " + e1.toString());
+
 				}
-				return -1;
+				return out;
 			}
 		}
 		
-		return 0;
+		return out;
 			
 	}	
 
 	/**
-	 * Inicia los subprocesos asociados a un proceso
-	 * @param processInstance
-	 * @param traversal
-	 * @param createInfo
-	 * @return 0 -> OK
-	 *        <0 -> Error
+	 * Initialize ApplicationContext object
+	 * @return ApplicationContext
 	 */
-	private int initSubProcesses(BaseProcInst processInstance, ProcInstTraversal traversal, ProcessCreateInfo createInfo)
-	{
-
-		int iControl = 0;
-
-		if (getDebugMode()) {
-			System.out.println("------------------------------------------------------------------------------------------");
-			System.out.println("Starting subprocesses");
-		}
-		
-
-		List subProcesses = processInstance.getSubprocInsts(traversal);
-		
-		for (Iterator i = subProcesses.iterator(); i.hasNext();)
-		{
-			BaseProcInst subProcInst = (BaseProcInst)i.next();
-			
-			try {
-				OmOrderAction oa = (OmOrderAction) createInfo.getProcessObject();
-				RootSetBase rsb = (RootSetBase) subProcInst.getRootContext();
-				AlRootSet mr = (AlRootSet) subProcInst.getRootProcInst().getRootContext();
-			
-				rsb.setmainRoot(mr);
-				rsb.setorderAction(oa);
-				if (rsb instanceof AlRootSet) 
-					((AlRootSet) rsb).setCaseDoneVal("N");
-			
-			}catch (Exception e) {
-				return -1;
-			}
-			
-			// Llamamos a la misma funcion con el valor de los subprocesos
-			iControl = initSubProcesses(subProcInst, traversal, createInfo);
-			if (iControl != 0) 
-				return -1;
-			
-		}
-		return 0;
+	private ApplicationContext getInputAppContext() {
+  		ApplicationContext ctx = new ApplicationContext();  		
+  		ctx.setFormatLocale(MainClass.app.getGlobalSession().getLocale());
+  		return ctx;
 	}
-
+	
 	/**
-	 * Lanza el proceso asociado a una order action
-	 * @param sqlQuery
-	 * @param creationInfo
-	 * @param customerID
-	 * @param existingOA
-	 * @param orderActionData
-	 * @return
-	 * @throws OmsDataNotFoundException
-	 * @throws OmsCreateRequestFailedException
-	 * @throws OmsInvalidImplementationException
-	 * @throws OmsInvalidUsageException
+	 * Initialize OrderingContext
+	 * @return ApplicationContext
 	 */
+	private OrderingContext getInputOrderingContext() {
+        OrderingContext ordCtx = new OrderingContext();
+        ordCtx.setLocale(MainClass.app.getGlobalSession().getLocale());
+        ordCtx.setSecurityToken(MainClass.app.getGlobalSession().getAsmTicket());
 	
-	/** @deprecated
-	 */
-	protected StringHolder startProcess(SqlExec sqlQuery, InitialProcessService.OrderActionCreationInfo creationInfo, String customerID, OmOrderAction existingOA, OrderActionData orderActionData)
-		    throws Exception
-	{
-
-		String caseId = null;
-		StringHolder caseIdH = new StringHolder(caseId);
-		
-		if (getDebugMode()) {
-			System.out.println("------------------------------------------------------------------------------------------");
-			System.out.println("Starting process");
-		}
-		
-		
-		try {
-
-			// Generamos la consulta con los datos del proceso a ejecutar
-			sqlQuery.execute(strQueryBPM.replace("%1", getStrProcessName()).replace("%2", getStrVersion()));
-			
-			if (sqlQuery.getRowCount() > 0) {
-			
-				if (getDebugMode()) {
-					System.out.println("Creating objects to launch the process");
-				}
-
-				 //createCase(procName, existingOA, true, true, caseIdH)
-				 ProcessCreateInfo createInfo = new ProcessCreateInfo();
-				 createInfo.setBusinessProcessName(this.getStrProcessName());
-				 createInfo.setVersion(getStrVersion());
-				 createInfo.setIsInitialProcess();
-				 createInfo.setUseLatest(true);
-				 createInfo.setFirstInQuantity(false);
-				 createInfo.setStart(true);
-
-				if (getDebugMode()) {
-					System.out.println("ProcessCreateInfo:" + createInfo.toString());
-				}
-
-				 
-				 //OmsBpaCase cse = (OmsBpaCase)ActivityManager.getInstance().createProcessInstance(createInfo);
-				 BusinessProcess bproc = null;
-				 bproc.setId((String)sqlQuery.getValue(1, 1));
-				 bproc.setName((String)sqlQuery.getValue(1, 3));				
-				 bproc.setStatus(ProcessStatus.valueOf((Integer)sqlQuery.getValue(1, 7)));
-				 bproc.setDefinitionVersion((Integer)sqlQuery.getValue(1, 8));
-				 bproc.setFocusKind(FocusKind.valueOf((Integer)sqlQuery.getValue(1, 9)));
-				 bproc.setFocusType((String)sqlQuery.getValue(1, 10));
-				 //bproc.setDynamicInstantiation(true);
-				 bproc.setSubclassingPolicyName("default");
-				 
-				if (getDebugMode()) {
-					System.out.println("BusinessProcess:" + bproc.toString());
-				}
-
-				 
-				 RootCreateInfo info = new RootCreateInfo();
-				 info.setMakeBeginStepInstAvailable(false);
-				 
-				 ProcInstManager piMgr = ProcInstManagerFactory.get();
-				 
-				if (getDebugMode()) {
-						System.out.println("ProcInstManager:" + piMgr.toString());
-				}
-
-				 
-				 BaseProcInst procInst = null;				 
-				 // Lanzamos el proceso
-				 procInst = (BaseProcInst) piMgr.createRootProcInst(bproc, null, info);
-
-				 if (procInst != null) {
-					if (getDebugMode()) {
-						System.out.println("BaseProcInst:" + procInst.toString());
-					}
-				 
-				 
-					//Asignamos el proceso a la OA
-					existingOA.assignProcessInstanceId(procInst.getId(), true);
-					createInfo.setProcessObject(existingOA);
-					
-					OmsBpaCase caseObj = (OmsBpaCase) procInst;
-					if (getDebugMode()) {
-						System.out.println("OmsBpaCase:" + caseObj.toString());
-					}
-					
-					caseObj.setLastUpdatedBy(session.getLogicalServerName());
-				 
-					ProcInstTraversal traversal = piMgr.createProcInstTraversal(procInst);
-					if (getDebugMode()) {
-						System.out.println("ProcInstTraversal:" + traversal.toString());
-					}
-				 
-					
-					if (initSubProcesses(procInst, traversal, createInfo) != 0) {
-						if (getDebugMode()) {
-							System.out.println("ERROR initializing subprocess");
-						}
-						return caseIdH;	
-					};
-
-
-					BaseStepInst stepInst = (BaseStepInst) procInst.getBeginStepInst();
-					stepInst.setReferenceText(stepInst.getId());
-				 
-					if (getDebugMode()) {
-						System.out.println("BaseStepInst:" + stepInst.toString());
-					}
-					
-					
-					if (stepInst.getStep() instanceof MilestoneStep ) {
-						Step st = stepInst.getStep();
-					 
-						Milestone m = null;
-						m.setStepInstanceId(stepInst.getId());
-						m.setProcessObject(existingOA);
-						m.setMilestoneStatus(MilestoneStatusTP.IN);
-						m.setMilestoneType(((MilestoneStep) st).getMilestoneType());
-						m.setIndex(0);
-						m.setConfiguration(existingOA.getConfiguration());
-					 
-						m.initiateAchievementDate(null);
-						m.initiateReachingDate(null);
-						m.initiateEarlyDate(null);
-						m.setDueDate(null);
-					 
-						existingOA.addMilestone(m);
-						if (getDebugMode()) {
-							System.out.println("Milestone:" + m.toString());
-						}
-						
-					}
-				 
-					try {
-						 procInst.startRootProcInst(); 
-						 existingOA.setIsProcessStarted(true);
-						 
-						 caseIdH.value = caseObj.getId();
-						 
-						 if (getDebugMode()) {
-							System.out.println("CaseId generated: " + caseObj.getId());
-						}
-
-					}catch (Exception e) {
-						 if (getDebugMode()) {
-							 System.out.println("ERROR Exception: " + e.toString());
-						 }
-
-						 return caseIdH;
-					 }
-					 
-				 }else{
-
-					if (getDebugMode()) {
-						System.out.println("ERROR ProcInst not created");
-					}
-
-					 
-				 }
-			}
-		}catch(Exception e) {
-			 if (getDebugMode()) {
-				 System.out.println("ERROR Generic Exception: " + e.toString());
-			 }
-
-			 return caseIdH;
-		}
-		finally {
-			sqlQuery.release();
-		}
-		
-		return caseIdH;
-	}	
-
-
-	/** 
-	 * Lanza el proceso asociado a una order action
-	 * @param conn
-	 * @param creationInfo
-	 * @param customerID
-	 * @param existingOA
-	 * @param orderActionData
-	 * @return
-	 * @throws Exception
-	 */
-	
-	protected StringHolder startProcess(Connection conn, InitialProcessService.OrderActionCreationInfo creationInfo, String customerID, OmOrderAction existingOA, OrderActionData orderActionData)
-		    throws Exception
-	{
-
-		String caseId = null;
-		StringHolder caseIdH = new StringHolder(caseId);
-
-		CallableStatement sqlQuery = null;
-		ResultSet result = null; 
-		
-		if (getDebugMode()) {
-			System.out.println("------------------------------------------------------------------------------------------");
-			System.out.println("Starting process");
-		}
-		
-		
-		try {
-
-			if (conn == null) {
-				MainClass.openDBConnection("OMS"); // abrimos la sesion para PC
-			}
-			
-			// Generamos la consulta con los datos del proceso a ejecutar
-			sqlQuery = (CallableStatement) conn.prepareStatement(strQueryBPM.replace("%1", getStrProcessName().replace("%2", getStrVersion())));			
-			result = sqlQuery.executeQuery();
-			
-			if (result.getFetchSize() > 0) {
-			
-				if (getDebugMode()) {
-					System.out.println("Creating objects to launch the process");
-				}
-
-				 //createCase(procName, existingOA, true, true, caseIdH)
-				 ProcessCreateInfo createInfo = new ProcessCreateInfo();
-				 createInfo.setBusinessProcessName(this.getStrProcessName());
-				 createInfo.setVersion(getStrVersion());
-				 createInfo.setIsInitialProcess();
-				 createInfo.setUseLatest(true);
-				 createInfo.setFirstInQuantity(false);
-				 createInfo.setStart(true);
-
-				if (getDebugMode()) {
-					System.out.println("ProcessCreateInfo:" + createInfo.toString());
-				}
-
-				 
-				 //OmsBpaCase cse = (OmsBpaCase)ActivityManager.getInstance().createProcessInstance(createInfo);
-				 BusinessProcess bproc = null;
-				 bproc.setId(result.getString(1));
-				 bproc.setName(result.getString(3));				
-				 bproc.setStatus(ProcessStatus.valueOf(result.getInt(7)));
-				 bproc.setDefinitionVersion(result.getInt(8));
-				 bproc.setFocusKind(FocusKind.valueOf(result.getInt(9)));
-				 bproc.setFocusType(result.getString(10));
-				 //bproc.setDynamicInstantiation(true);
-				 bproc.setSubclassingPolicyName("default");
-				 
-				if (getDebugMode()) {
-					System.out.println("BusinessProcess:" + bproc.toString());
-				}
-
-				 
-				 RootCreateInfo info = new RootCreateInfo();
-				 info.setMakeBeginStepInstAvailable(false);
-				 
-				 ProcInstManager piMgr = ProcInstManagerFactory.get();
-				 
-				if (getDebugMode()) {
-						System.out.println("ProcInstManager:" + piMgr.toString());
-				}
-
-				 
-				 BaseProcInst procInst = null;				 
-				 // Lanzamos el proceso
-				 procInst = (BaseProcInst) piMgr.createRootProcInst(bproc, null, info);
-
-				 if (procInst != null) {
-					if (getDebugMode()) {
-						System.out.println("BaseProcInst:" + procInst.toString());
-					}
-				 
-				 
-					//Asignamos el proceso a la OA
-					existingOA.assignProcessInstanceId(procInst.getId(), true);
-					createInfo.setProcessObject(existingOA);
-					
-					OmsBpaCase caseObj = (OmsBpaCase) procInst;
-					if (getDebugMode()) {
-						System.out.println("OmsBpaCase:" + caseObj.toString());
-					}
-					
-					caseObj.setLastUpdatedBy(session.getLogicalServerName());
-				 
-					ProcInstTraversal traversal = piMgr.createProcInstTraversal(procInst);
-					if (getDebugMode()) {
-						System.out.println("ProcInstTraversal:" + traversal.toString());
-					}
-				 
-					
-					if (initSubProcesses(procInst, traversal, createInfo) != 0) {
-						if (getDebugMode()) {
-							System.out.println("ERROR initializing subprocess");
-						}
-						return caseIdH;	
-					};
-
-
-					BaseStepInst stepInst = (BaseStepInst) procInst.getBeginStepInst();
-					stepInst.setReferenceText(stepInst.getId());
-				 
-					if (getDebugMode()) {
-						System.out.println("BaseStepInst:" + stepInst.toString());
-					}
-					
-					
-					if (stepInst.getStep() instanceof MilestoneStep ) {
-						Step st = stepInst.getStep();
-					 
-						Milestone m = null;
-						m.setStepInstanceId(stepInst.getId());
-						m.setProcessObject(existingOA);
-						m.setMilestoneStatus(MilestoneStatusTP.IN);
-						m.setMilestoneType(((MilestoneStep) st).getMilestoneType());
-						m.setIndex(0);
-						m.setConfiguration(existingOA.getConfiguration());
-					 
-						m.initiateAchievementDate(null);
-						m.initiateReachingDate(null);
-						m.initiateEarlyDate(null);
-						m.setDueDate(null);
-					 
-						existingOA.addMilestone(m);
-						if (getDebugMode()) {
-							System.out.println("Milestone:" + m.toString());
-						}
-						
-					}
-				 
-					try {
-						 procInst.startRootProcInst(); 
-						 existingOA.setIsProcessStarted(true);
-						 
-						 caseIdH.value = caseObj.getId();
-						 
-						 if (getDebugMode()) {
-							System.out.println("CaseId generated: " + caseObj.getId());
-						}
-
-					}catch (Exception e) {
-						 if (getDebugMode()) {
-							 System.out.println("ERROR Exception: " + e.toString());
-						 }
-
-						 return caseIdH;
-					 }
-					 
-				 }else{
-
-					if (getDebugMode()) {
-						System.out.println("ERROR ProcInst not created");
-					}
-
-					 
-				 }
-			}
-		}catch(Exception e) {
-			 if (getDebugMode()) {
-				 System.out.println("ERROR Generic Exception: " + e.toString());
-			 }
-
-			 return caseIdH;
-		}
-		finally {
-			try {
-				//Liberamos la consulta
-		  		result.close();
-		  		sqlQuery.close();
-			}catch(Exception e) {}
-		}
-		
-		return caseIdH;
-	}	
-	
-
-
-	/**
-	 * Devuelve un objeto con el detalle del proceso a lanzar
-	 * @param conn
-	 * @param strProcessName
-	 * @return
-	 */
-    private PcProcessDefinition getProcessDetails(Connection conn, String strProcessName) {
-       try {
-		    //++paco
-			DataManager = new DataManagerCls(settingMap);
-			System.out.println("---------------------------");
-			System.out.println("objeto DataManager creado OK");
-			
-			dManagerFactory.set(DataManager);
-			System.out.println("---------------------------");
-			System.out.println("DataManagerFactoty inicializado OK con el objeto DataManager");
-		    //--paco			
-			PcProcessDefinitionAug pd = (PcProcessDefinitionAug) PcProcessDefinitionAug.create(IdGen.uniqueId()) ;
-            PreparedStatement sqlQuery = null;           
-            ResultSet result = null;
-            if (getDebugMode()) {
-                System.out.println("------------------------------------------------------------------------------------------");
-                System.out.println("Getting process definition details: " + strProcessName);
-            }            
-            try {    
-                if (conn == null) {
-                    MainClass.openDBConnection("PC"); // abrimos la sesion para PC
-                }                
-                sqlQuery = (PreparedStatement) conn.prepareStatement(strQueryProcessDef.replace("%1", strProcessName));
-                result = sqlQuery.executeQuery();             
-                if (result.getFetchSize() == 1) {
-                      pd.setcId(result.getString(1));
-                      pd.setlineOfBusiness(result.getString(4));
-                      pd.setsalesChannel(result.getString(5));
-                      pd.setprocessMapAction((ActionType)ActionTypeTP.def.findByCode(result.getString(3)));
-                      pd.setspecifiedVersionId(result.getInt(2));
-                      
-                }
-            }catch(Exception e){
-                if (getDebugMode()) {
-                    System.out.println("------------------------------------------------------------------------------------------");
-                    System.out.println("ERROR getting process definition details: " + e.toString());
-                }
-                return null;               
-            }finally{        
-                try {
-                    //Liberamos la consulta
-                      result.close();
-                      sqlQuery.close();
-                }catch(Exception e) {}                
-            }           
-            return (PcProcessDefinition) pd;
-       }catch(Exception e) {
-           if (getDebugMode()) {
-                System.out.println("------------------------------------------------------------------------------------------");
-                System.out.println("Error initializing PcProcessDefinition " + e.toString());
-            }          
-            return null;
-       }
-   }	 
-	
-
-
-	/**
-	 *  Devuelve un objeto con el detalle de la orden obtenido de bbdd
-	 * @param con
-	 * @param orderId
-	 * @return
-	 */
-	private OmOrder getOmOrderDetails(Connection conn, String orderId) {
-		OmOrder om = null;
-		CallableStatement sqlQuery = null;
-		ResultSet result = null;
-		
-		if (getDebugMode()) {
-			System.out.println("------------------------------------------------------------------------------------------");
-			System.out.println("Getting OMOrder details: " + orderId);
-		}
-		
-		try {
-
-			if (conn == null) {
-				MainClass.openDBConnection("OMS"); // abrimos la sesion para OMS
-			}
-			
-			//++paco		
-			DistributedLockManager lockManager = new DistributedLockManager(settingMap);
-			System.out.println("Objeto lockManager creado OK");
-			System.out.println("------------------------------");					
-			LockManagerFactory lmanagerFactory = null;
-			lmanagerFactory.set(lockManager);
-			System.out.println("Asignacion al LockManagerFactory el objeto lockManager OK");
-			System.out.println("------------------------------");			
-			//--paco				
-			
-	  		om = (OmOrder) OmOrder.create(getStrIDContract());
-			System.out.println("OmOrder.Create OK");
-	  		om.setclfyOrderIdVal(getStrIDContract());
-			System.out.println("setclfyOrderIdVal OK");
-
-
-
-			sqlQuery = (CallableStatement) conn.prepareStatement(strQueryOmsOrder.replace("%1", orderId));
-			result = sqlQuery.executeQuery();
-			
-			if (result.getFetchSize() == 1) {
-
-	  			om.setorderMode((DynOrderMode) DynOrderModeTP.def.findByCode(result.getString(2)));
-	  			om.setgroupId(result.getString(3));
-	  			om.setrootCustomerId(result.getString(4));
-	  			om.setorderStatus((OrderStatus) OrderStatusTP.def.findByCode(result.getString(5)));
-	  			om.setopportunityId(result.getString(6));
-	  			om.setcurrentSalesChannel(result.getString(7));
-	  			om.setdealerCode(result.getString(8));
-	  			om.setaddressId(result.getString(9));
-	  			om.setisCreatedAnonymous(false);
-	      		
-	      		OmOrderHolder h = new OmOrderHolder();
-	      		h.setValue(om);
-	      		
-	      		OmOrderAddition.createNewOrderAddition(orderId, h);
-	      		om.setORDER_ADDITION(((OmOrder) h.getValue()).getORDER_ADDITION()); 
-	      		
-	      		om.setapplicationDate( result.getDate(13));
-	      		om.setcontactId(result.getString(16));
-	      		om.setcreationDate(result.getDate(12));
-	      		om.setcustomerId(result.getString(17));
-	      		om.setcustOrderReference(result.getString(15));
-	      		om.setdepositID(result.getString(19));
-	      		om.setDueDate(result.getDate(14));
-	      		om.setextReferenceNum(result.getString(10));
-	      		om.setisSaved(true);
-	      		om.setorderUnitId(result.getString(20));
-	      		om.setorderUnitType((OrderUnitType) OrderUnitTypeTP.def.findByCode(result.getString(21)));
-	      		om.setpriority(result.getInt(22));
-	      		om.setproposalExpiryDate(result.getDate(23));
-	      		om.setrecontact_in_month(result.getInt(24));
-	      		om.setrecontact_in_year(result.getInt(25));
-	      		om.setrecontactPeriod((RecontactPeriod) RecontactPeriodTP.def.findByCode(result.getString(26)));
-	      		om.setreferenceNumber(orderId);
-	      		om.setsalesChannel(result.getString(7));
-	      		om.setserviceRequiredDate(result.getDate(11));
-	      		om.setsourceOrder(result.getString(27));
-
-	  		}
-	  		
-		}catch (Exception e){
-			if (getDebugMode()) {
-				System.out.println("------------------------------------------------------------------------------------------");
-				System.out.println("ERROR getting OMOrder details: " + e.toString());
-			}
-			
-			return null;
-			
-	    }finally{
-	    	try {
-		    	result.close();
-		    	sqlQuery.close();
-		    	
-	    	}catch(Exception e) {}
-	    	
-	    }
-		
-		return om;
+		return ordCtx;
 	}
+		
 	/**
-	 * Recupera los datos de Order
-	 * @param om  --> OMOrder desde la propiedad this.order
-	 * @return Order
+	 *  Initialize MakInfo
+	 * @return MaskInfo
 	 */
-	private Order getInputOrderDetails(OmOrder om) {
-
-		Order o = new Order();
+	private MaskInfo getInputMaskInfo() {
+		MaskInfo mask = new MaskInfo();
 		
-		if (getDebugMode()) {
-			System.out.println("------------------------------------------------------------------------------------------");
-			System.out.println("Getting Order details: " + om.getId());
-		}
-		
-		try {
-			//definimos los objetos que necesitaremos para generar inputOrder
-			OrderID oid = null;
-			oid.setOrderID(om.getId());
-			
-			SalesChannelRVT sc = new SalesChannelRVT(om.getsalesChannel());
-			
-			OrderUserActionRVT ouaRVT = null;
-			OrderUserAction[] oua = null;
-			oua[0].setAction(ouaRVT);
-			oua[0].setAllowed(true);
-			oua[0].setRelinquishChannels(0, sc);
-	
-			OrderDetails od = null;			
-			od.setServiceRequiredDate(om.getserviceRequiredDate());
-			od.setCreationDate(om.getcreationDate());
-			od.setApplicationDate(om.getapplicationDate());
-			od.setExpiryDate(om.getDueDate());
-			od.setOrderStatus(new OrderStatusRVT(om.getOrderStatusVal().getCode()));
-			od.setOrderMode(new OrderModeRVT(om.getorderMode().getCode()));
-			od.setSalesChannel(sc);
-			od.setExternalOrderID(om.getextReferenceNum());
-			od.setCustomerOrderID(om.getcustOrderReference());
-			od.setCurrentSalesChannel(sc);
-
-			PersonID pid = null;
-			pid.setId(om.getcontactId());
-
-			PersonHeader ph = null;
-			ph.setPersonID(pid);
-			ph.setId(pid.getId());
-			
-			// formamos el objeto Order
-			o.setOrderDetails(od);
-			o.setOrderID(oid);
-			o.setAvailableUserActions(oua);
-			o.setAnonymous(false);
-			o.setAddressIDX9(om.getaddressId());
-			o.setBiometricCheckValidatedSuccessfullyX9(true); //Esta accion del proceso pasara siempre como completada
-			o.setExternalOrderIdX11(om.getextReferenceNum());
-			o.setContact(ph);
-			o.setAddressIDX9(om.getaddressId());
-			o.setExternalOrderIdX9(om.getextReferenceNum());
-			
-		}catch(Exception e) {
-			
-			if (getDebugMode()) {
-				System.out.println("------------------------------------------------------------------------------------------");
-				System.out.println("ERROR getting Order details: " + e.toString());
-			}
-			
-			return null;
-		}
-		
-		return o;
+		return mask;
 	}
 	
 
-
 	/**
-	 * Recupera los datosde StartOrderInput
-	 * @param sqlQuery  --> consulta sobre OMS
-	 * @param orderId   --> id de orden
+	 * Fill the StartOrderInput object
+	 * @param conn  	--> db connection. If closed, open it
+	 * @param orderId   --> order id when the process will be attached
 	 * @return StartOrderInput
 	 */
 	private StartOrderInput getStartOrderInput(Connection conn, String orderId) {
@@ -1220,14 +423,13 @@ extends es.neoris.operations.MainClass
 		ResultSet result = null;
 		
 		if (getDebugMode()) {
-			System.out.println("------------------------------------------------------------------------------------------");
-			System.out.println("Getting StartOrderInput details: " + orderId);
+			CONSUMER_LOGGER.log(LogLevel.DEBUG, "Getting StartOrderInput details: " + orderId);				
 		}
 
 		try{
 			
 			if (conn == null) {
-				MainClass.openDBConnection("OMS"); // abrimos la sesion para OMS
+				MainClass.openDBConnection("LAUNCHORDER", getM_credential()); // open session
 			}
 
 			sqlQuery = (CallableStatement) conn.prepareStatement(strQueryOmsOrder.replace("%1", orderId));
@@ -1236,33 +438,47 @@ extends es.neoris.operations.MainClass
 			if (result.getFetchSize() > 0) {			
 
 				OrderActionData[] oad = null;
-				OmOrderAction[] oma = null;
-				OmOrderAction omoa = null;
 				int iConta = 0;
 				
 				while (result.next()) {
-
-					DynamicAttribute[] dynAtr = null;
+					
+					// DynamicAttribute
+					// -------------------------
+					DynamicAttribute dynAtr = new DynamicAttribute();
 					String strDynamic = result.getString(5);
 					
 					if (!"".equals(strDynamic) && strDynamic != null) {
 						
 						String[] values = strDynamic.split("=");
 						if (!"".equals(values[0]) && values[0] !=null) {
-							dynAtr[0].setName(values[0]);
-							dynAtr[0].setValue(values[1]);
+							dynAtr.setName(values[0]);
+							dynAtr.setValue(values[1]);
 						}
 					}
 					
-					//formamos el objeto OrderAction
-					OrderAction oaInfo = null;
+					DynamicAttribute[] dynAtrHolder = null;
+					dynAtrHolder[0] = dynAtr;
 					
-					OrderActionID oaID = null;
+					//OrderAction
+					// -------------------------
+					OrderAction oaInfo = new OrderAction();					
+					OrderActionID oaID = new OrderActionID();
+
 					oaID.setOrderActionID(result.getString(1));
 					oaInfo.setOrderActionID(oaID);
 
+					//SubscriptionGroupID
+					// -------------------------
+					SubscriptionGroupID sgID = new SubscriptionGroupID();
+					sgID.setID(result.getInt(23));		
+					
+					//OrganizationID
+					// -------------------------
+					OrganizationID oID = new OrganizationID();
+
 					//OrderActionDetails
-					OrderActionDetails oaDet = null;
+					// -------------------------
+					OrderActionDetails oaDet = new OrderActionDetails();
 					
 					oaDet.setActionType(new OrderActionTypeRVT((result.getString(5))));
 					oaDet.setStatus(new OrderActionStatusRVT(result.getString(4)));
@@ -1275,24 +491,20 @@ extends es.neoris.operations.MainClass
 					oaDet.setCancelProcess(false);
 					oaDet.setExternalOrderActionID(result.getString(25));
 					oaDet.setCustomerOrderActionID(result.getString(31));
-					
-					SubscriptionGroupID sgID = new SubscriptionGroupID();
-					sgID.setID(result.getInt(23));							
 					oaDet.setSubscriptionGroupID(sgID);
 					oaDet.setAmendProcess(false);
 					oaDet.setCancelProcess(false);	
-					
-					OrganizationID oID = null;
-					oID.setId(null); // Pendiente de buscar el valor a usar
 					oaDet.setOrganizationID(oID); 
 					
 					//OrderActionUserAction
+					// -------------------------
 					OrderActionUserAction[] ouAct = null;
-					OrderActionUserActionRVT oauAct = null;
+					OrderActionUserActionRVT oauAct = new OrderActionUserActionRVT();					
 					ouAct[0].setAction(oauAct);
 					
 					//OrderHeader
-					OrderHeader oh = null;
+					// -------------------------
+					OrderHeader oh = new OrderHeader();
 
 					oh.setOrderID(this.inputOrder.getOrderID());
 					oh.setOrderMode(this.inputOrder.getOrderDetails().getOrderMode());
@@ -1306,12 +518,12 @@ extends es.neoris.operations.MainClass
 					oh.setAvailableUserActions(this.inputOrder.getAvailableUserActions());
 					oh.setSalesChannel(this.inputOrder.getOrderDetails().getCurrentSalesChannel());
 					oh.setLocked(true);
-					oh.setAnonymous(false);
-					
-					oh.setOrderRetrievalCriteria(dynAtr);
+					oh.setAnonymous(false);					
+					oh.setOrderRetrievalCriteria(dynAtrHolder);
 					oh.setCustomerAgreedToPayDeposit(false);
 
-					// Rellenamos el objeto OrderAction
+					// OrderAction
+					// -------------------------
 					oaInfo.setOrderActionID(oaID);
 					oaInfo.setOrderActionDetails(oaDet);
 					oaInfo.setAvailableUserActions(ouAct);
@@ -1319,70 +531,10 @@ extends es.neoris.operations.MainClass
 
 					// OrderActionData
 					oad[iConta].setOrderActionInfo(oaInfo);
-					oad[iConta].setDynamicAttributes(dynAtr);
-					
-					// Generamos la info de OMOrderAction con la misma consulta
-					omoa = null;
-		      		
-		      		omoa.setApId(result.getString(7));
-		      		
-		      		ApItem api = null;					      		
-		      		api.setAPId(result.getString(7));
-		      		api.setVersionIdVal(result.getString(10));
-		      		omoa.setAPITEM_REL(api);
-		      		
-		      		omoa.setapplicationDate(result.getDate(16));
-		      		omoa.setApplicationReferenceIdVal(result.getString(32));
-		      		omoa.setApVersionId(result.getString(10));					      		
-		      		omoa.setBpNameVal(this.getStrProcessName()); //Nombre del proceso a ejecutar!
-		      		
-		      		omoa.setconfigOA(ConfigurationTP.R);
-		      		omoa.setcontactId(result.getString(18));
-		      		omoa.setcreationDate(result.getDate( 26));
-		      		omoa.setcreatorId(result.getString(21));
-		      		omoa.setcustomerId(result.getString(19));
-		      		omoa.setcustOrderReference(result.getString(31));
-		      		omoa.setDueDate(result.getDate( 6));
-		      		omoa.setearlyDate(result.getDate(33));
-		      		omoa.setextReferenceNum(result.getString(25));
-		      		omoa.setextReferenceRemark(result.getString(34));
-		      		omoa.setInitialProcessDefinition(this.getProcessDef());
-		      		omoa.setisActive(BooleanValTP.TRUE);
-		      		omoa.setisMain((BooleanVal) BooleanValTP.def.findByCode(result.getString(9)));
-		      		omoa.setIsProcessStarted(false);
-		      		omoa.setLanguageVal((LanguageCode) LanguageCodeTP.def.findByCode(result.getString(12)));
-		      		omoa.setItemPartitionKeyVal(result.getInt(35));
-		      		omoa.setorder(this.order);
-		      		omoa.setorderActionStatus((OrderActionStatus) OrderActionStatusTP.def.findByCode(result.getString(4)));
-		      		omoa.setorderUnitId(result.getString(1));
-		      		omoa.setorderTypeName((ActionType) ActionTypeTP.def.findByCode(result.getString(5)));
-		      		omoa.setorderUnitType(this.order.getorderUnitType());
-		      		omoa.setorganizationOwnerId(result.getString(17));
-		      		omoa.setparentOrderUnitId(result.getString(2));
-		      		omoa.setparentRelation((OrderActionParentRelation) OrderActionParentRelationTP.def.findByCode(result.getString(8)));
-		      		omoa.setpriority(result.getInt(15));
-		      		omoa.setPrivsKeyVal(result.getString(36));
-		      		omoa.setQSequenceNumVal(result.getInt(37));
-		      		omoa.setQuantityVal(result.getInt(38));
-		      		omoa.setreasonFreeText(result.getString(39));
-		      		omoa.setreasonId(result.getString(28));
-		      		omoa.setcustomerWillReContactInd((1 == result.getInt(40)));
-		      		omoa.setrecontactPeriod((RecontactPeriod)RecontactPeriodTP.def.findByCode(result.getString(41)));
-		      		omoa.setrecontact_in_month(result.getInt(42));
-		      		omoa.setrecontact_in_year(result.getInt(43));
-		      		omoa.setreferenceNumber(result.getString(20));
-		      		omoa.setreplacedOfferApID(result.getString(44));
-		      		omoa.setrequestLineId(result.getString(45));
-		      		omoa.setSalesChannelVal(result.getString(27));					      		
-		      		omoa.setserviceRequiredDate(this.order.getserviceRequiredDate());
-		      		
-		      		//sumamos la OA al array
-		      		oma[iConta] = omoa;
-		      		iConta++;
+					oad[iConta].setDynamicAttributes(dynAtrHolder);
+					iConta++;
 					
 				}
-				
-	      		this.order.setOMORDER_ACTION_CHILDs(EpiCollections.singletonTypedListSet(OmOrderAction.class, oma));
 				
 				// StartOrderInput
 	      		sti.setOrder(this.inputOrder);
@@ -1394,8 +546,7 @@ extends es.neoris.operations.MainClass
 			
 		}catch (Exception e){
 			if (getDebugMode()) {
-				System.out.println("------------------------------------------------------------------------------------------");
-				System.out.println("ERROR getting StartOrderInput details: " + e.toString());
+				CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR getting StartOrderInput details: " + e.toString());	
 			}
 			
 			return null;
@@ -1414,13 +565,7 @@ extends es.neoris.operations.MainClass
 		return sti;
 	}			
 	
-	
-	
-	public OutputParamsLaunchOrder execProcess() {
-		
-		
-		return(getM_output());
-	}
+
 	
 	
 	public InputParamsLaunchOrder getM_input() {
@@ -1470,5 +615,14 @@ extends es.neoris.operations.MainClass
 	public void setStrObjidLanzado(String strObjidLanzado) {
 		this.m_strObjidLanzado = strObjidLanzado;
 	}	
-	
+
+	public static HashMap<String, String> getM_credential() {
+		return m_credential;
+	}
+
+
+	public static void setM_credential(HashMap<String, String> m_credential) {
+		LaunchOrder.m_credential = m_credential;
+	}
+
 }

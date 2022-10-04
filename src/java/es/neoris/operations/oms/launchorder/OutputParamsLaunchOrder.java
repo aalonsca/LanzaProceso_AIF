@@ -1,12 +1,15 @@
 package es.neoris.operations.oms.launchorder;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.amdocs.aif.consumer.OperationResults;
+import com.amdocs.cih.services.oms.lib.StartOrderOutput;
 import com.amdocs.cih.services.oms.lib.StartOrderingProcessOutput;
 
 import amdocs.core.logging.Logger;
+import amdocs.core.mapping.Mappable;
 
 /**
  * 	Return object from call AIF operation StartOrderingProcessService 
@@ -15,24 +18,29 @@ import amdocs.core.logging.Logger;
  *
  */
 public class OutputParamsLaunchOrder 
-implements OperationResults
+implements OperationResults, Mappable, Serializable
 {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -561774673747545030L;
 
 	// Logger
 	static final Logger CONSUMER_LOGGER = Logger.getLogger("es.neoris.operations.oms.launchorder.OutputParamsLaunchOrder");
 
-	private StartOrderingProcessOutput m_order;
+	private StartOrderOutput m_order;
 	
 	
 	public OutputParamsLaunchOrder() {
 		/* default no-op constructor */
 	}
 	
-    public StartOrderingProcessOutput getM_order() {
+    public StartOrderOutput getM_order() {
 		return m_order;
 	}
 
-	public void setM_order(StartOrderingProcessOutput m_order) {
+	public void setM_order(StartOrderOutput m_order) {
 		this.m_order = m_order;
 	}
 
@@ -42,7 +50,7 @@ implements OperationResults
             Object value = null;
             value = map.get("StartOrderingProcessOutput");
             if (value != null && value instanceof StartOrderingProcessOutput) {
-                this.m_order = (StartOrderingProcessOutput) value;
+                this.m_order = (StartOrderOutput) value;
             }
         }
     }
