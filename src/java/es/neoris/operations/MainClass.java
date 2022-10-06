@@ -44,7 +44,7 @@ public class MainClass {
 	protected static EpiSessionId epiSession = null;
 	
 	// Variables to retrieve the results
-	static final String sDirEject = "es/neoris/operations/oms/launchorder";
+	static final String sDirEject = "es/neoris/operations/";
 	static final String sRutaIni = System.getProperty(sDirEject, ".");
 
 
@@ -115,16 +115,21 @@ public class MainClass {
 	/**
 	 * Constructor
 	 */
-	public MainClass () {
+	public MainClass () 
+			throws Exception {
 	
 		//Start application services (Logger / AIF)
 		app = new Application(false);
 		app.initialize();
 		
 		try {
-			CreateSession session = new CreateSession();
-			
-			epiSession = session.getM_output().getM_sessionID();
+			CreateSession session = new CreateSession();			
+			epiSession = session.execProc(); 
+			if (epiSession == null) {
+				CONSUMER_LOGGER.log(LogLevel.SEVERE, "Error opening WL connection.");
+				throw new Exception("Error opening WL connection");
+			}
+ 
 			
 		}catch(Exception e) {
 			CONSUMER_LOGGER.log(LogLevel.SEVERE, "Error creating EpiSessionID");

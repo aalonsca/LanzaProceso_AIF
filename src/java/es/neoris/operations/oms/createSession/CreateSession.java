@@ -71,8 +71,6 @@ extends es.neoris.operations.MainClass
 	private static final String JNDI = "amdocs/bpm/ejb/aif/ProcMgrSession";
 	private final static String initialContextFactory = "weblogic.jndi.WLInitialContextFactory";
 	private Object objref = null;
-	private EpiSessionId service = null;
-	
 
 	// Variables to call service
 	private InputParamsCreateSession m_input;
@@ -94,11 +92,6 @@ extends es.neoris.operations.MainClass
 			throw new Exception("Error reading .properties file");
 		}
 		
-		// Open and get EpiSessionID 
-		if (execProc() < 0) {
-			CONSUMER_LOGGER.log(LogLevel.SEVERE, "Error opening WL connection.");
-			throw new Exception("Error opening WL connection");
-		}
 		
 	}
 	
@@ -149,7 +142,7 @@ extends es.neoris.operations.MainClass
 	 * @return 0 -> OK
 	 *        -1 -> Error connecting
 	 */
-	private int execProc() {
+	public EpiSessionId execProc() {
 		
 		if (getDebugMode()) {
 			CONSUMER_LOGGER.log(LogLevel.INFO,"Entering prepareConnWL..."); 
@@ -157,6 +150,8 @@ extends es.neoris.operations.MainClass
 		
 		// Generating WL connection
 		try {
+			EpiSessionId sessionID = new EpiSessionId();
+			
 			// Defining properties to connect 
 			Properties propertiesCon = new Properties();
 			propertiesCon.put(InitialContext.INITIAL_CONTEXT_FACTORY, initialContextFactory);
@@ -178,14 +173,14 @@ extends es.neoris.operations.MainClass
 			
 			// Get the EpiSessionID object
 			m_input.setM_principalName(IdGen.uniqueId());			
-			service = AIFservice.createSession(m_input.getM_principalName());			
+			sessionID = AIFservice.createSession(m_input.getM_principalName());			
 			m_output.setM_sessionID(service);
 			
 			if (getDebugMode()) {
 				CONSUMER_LOGGER.log(LogLevel.INFO,"Session created.");
 			}
 			
-			return 0;
+			return sessionID;
 			
 		}catch(Exception e){
 			
@@ -193,7 +188,7 @@ extends es.neoris.operations.MainClass
 				CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR APM Session initialization FAILED: " + e.toString());
 			}
 			
-			return -1;
+			return sessionID;
 		}
 		
 	}
