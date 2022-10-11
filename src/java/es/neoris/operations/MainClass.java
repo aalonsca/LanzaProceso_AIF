@@ -1,53 +1,45 @@
 package es.neoris.operations;
 
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.HashMap;
 
-import com.clarify.cbo.Application;
-
-import amdocs.core.logging.LogLevel;
-import amdocs.core.logging.Logger;
 import amdocs.epi.session.EpiSessionId;
 import es.neoris.operations.oms.createSession.CreateSession;
 import es.neoris.operations.oms.launchOrder.LaunchOrder;
 import es.neoris.operations.oms.launchOrder.OutputParamsLaunchOrder;
+import es.neoris.operations.oms.retrieveOrder.OutputParamsRetrieveOrder;
+import es.neoris.operations.oms.retrieveOrder.RetrieveOrder;
 
 
 
 
 /**
- * Lanza un proceso de APM y lo asocia al objeto de OMS correspondiente
+ * Execute an AIF service. Previous, always execute CreateSession AIF.
  * @author NEORIS
  * @version: 1.0
  */
 public class MainClass {
 
-	// Logger
-	private static final Logger CONSUMER_LOGGER = Logger.getLogger("es.neoris.operations.oms.launchorder.MainClass");
 
 	// Variables to control connection to db
 	private static String ORACLE_DRIVER_CLFY = null;
-	
-	// Variables to control session
-	protected static Application app = null;
-			
 	protected static Connection oraConexionOMS = null;
 	protected static Connection oraConexionPC = null;
 	protected static boolean DebugMode = false;
 	protected static EpiSessionId epiSession = null;
 	
 	// Variables to retrieve the results
-	static final String sDirEject = "es/neoris/operations/";
-	static final String sRutaIni = System.getProperty(sDirEject, ".");
+	static final String sDirEject = "res/";
+	static final String s_nombreFich ="mainclass.properties";
+	protected static final String initialContextFactory = "weblogic.jndi.WLInitialContextFactory";
+	
+	//Variables to get .properties values
+	private static String strDebug = null;
 
-
+	
 	/**
 	 * Main function
 	 * @param args
@@ -66,7 +58,22 @@ public class MainClass {
 		
 		// New parent object. Initialize remote services
 		MainClass proceso = new MainClass();
-
+		CreateSession session = new CreateSession();
+		
+		try {
+						
+			epiSession = session.execProc().getM_sessionID(); 
+			if (epiSession == null) {
+				System.out.println("Error opening WL connection.");
+				throw new Exception("Error opening WL connection");
+			}
+ 
+		}catch(Exception e) {
+			System.out.println("Error creating EpiSessionID");
+			throw new Exception("Error creating EpiSessionID");
+		}
+		
+		
 		try {
 			 
 			// The args[0] contains the service name to execute
@@ -75,70 +82,60 @@ public class MainClass {
 				String service =args[0];				
 				if ("LAUNCHORDER".equalsIgnoreCase(service)) {
 					
-					// 
+					//Retrieve the order info
+					RetrieveOrder order = new RetrieveOrder();
+					OutputParamsRetrieveOrder pOrder = order.execProc();
 					
-					//LaunchOrder service					
-					LaunchOrder process = new LaunchOrder(args[1], args[2], args[3]);	
-					OutputParamsLaunchOrder output = process.execProcess();
-					
-					//Guardamos el objid recuperado en un fichero de texto
-					BufferedWriter bw = null;
-					try {
-						
-						File fichero = new File(sRutaIni + "/out", process.getStrIDContract() + "_" + process.getStrVersion());
-						bw = new BufferedWriter(new FileWriter(fichero));
-						bw.write(output.getM_order().getOrderID().toString());
-		
-					} catch (IOException e) {
+					if (pOrder == null) {
 						if (getDebugMode()) {
-							CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR handling output file : " + e.toString());	
+							System.out.println("Error getting order info" + args[1]);
+							throw new Exception("Error getting order info: " + args[1]);
 						}
-							
-					} finally {
-						try {
-							bw.close();
-						} catch (Exception e) {}
+						
 					}
 					
+					
+					//LaunchOrder service					
+					LaunchOrder process = new LaunchOrder(pOrder.getM_order().getOrder(0), args[2], args[3]);	
+					OutputParamsLaunchOrder output = process.execProcess();
+					
+					if (output == null) {
+						
+						if (getDebugMode()) {
+							System.out.println("Error executing process " + args[1] + " --> " + args[2] + "(" + args[3] + ")");
+							throw new Exception("Error executing process " + args[1] + " --> " + args[2] + "(" + args[3] + ")");
+						}
+						
+						
+					}
 					
 				}
 			}
 			
 		}catch(Exception e) {
-			CONSUMER_LOGGER.log(LogLevel.SEVERE, "Error executing " + args[0] + "." + e.getLocalizedMessage());
+			System.out.println("Error executing " + args[0] + "." + e.getLocalizedMessage());
 			throw new Exception("Error executing " + args[0] + ". Exiting...");
 		}
 		
-
+		finally {
+			session.releaseSession();
+			
+		}
+			
+		
 	}
 
 	/**
 	 * Constructor
 	 */
-	public MainClass () 
-			throws Exception {
-	
-		//Start application services (Logger / AIF)
-		app = new Application(false);
-		app.initialize();
-		
-		try {
-			CreateSession session = new CreateSession();			
-			epiSession = session.execProc(); 
-			if (epiSession == null) {
-				CONSUMER_LOGGER.log(LogLevel.SEVERE, "Error opening WL connection.");
-				throw new Exception("Error opening WL connection");
-			}
- 
-			
-		}catch(Exception e) {
-			CONSUMER_LOGGER.log(LogLevel.SEVERE, "Error creating EpiSessionID");
-		}
+	public MainClass () {
+		System.out.println("Initalizing services...");
 		
 	}
 
 	
 
+	
 	/**
 	 * Open db connections
 	 * @param strService
@@ -151,7 +148,7 @@ public class MainClass {
 	protected static void openDBConnection(String strService, HashMap<String, String> prop) throws SQLException {
 
 		if (getDebugMode()) {
-			CONSUMER_LOGGER.log(LogLevel.DEBUG, "Entering openDBConnection with value : " + strService);
+			System.out.println("Entering openDBConnection with value : " + strService);
 		}
 
 		
@@ -164,13 +161,13 @@ public class MainClass {
 				oraConexionOMS = DriverManager.getConnection(ORACLE_DRIVER_CLFY, (String) prop.get("DB_USER_OMS"), (String) prop.get("DB_PASS_OMS"));
 
 				if (getDebugMode()) {
-					CONSUMER_LOGGER.log(LogLevel.DEBUG, "ORACLE OMS connection opened");
+					System.out.println("ORACLE OMS connection opened");
 				}
 
 			} catch (SQLException sqle) {
 				
 				if (getDebugMode()) {
-					CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR Opening Oracle OMS DB connection FAILED: " + sqle.toString());
+					System.out.println("ERROR Opening Oracle OMS DB connection FAILED: " + sqle.toString());
 				}
 				
 				throw new SQLException("Error opening Oracle db connection: " +  (String) prop.get("DB_NAME") + ":" + (String) prop.get("JDBC_PORT"));
@@ -184,13 +181,13 @@ public class MainClass {
 				oraConexionPC = DriverManager.getConnection(ORACLE_DRIVER_CLFY, (String) prop.get("DB_USER_PC"), (String) prop.get("DB_PASS_PC"));
 
 				if (getDebugMode()) {
-					CONSUMER_LOGGER.log(LogLevel.DEBUG, "ORACLE PC connection opened");
+					System.out.println("ORACLE PC connection opened");
 				}
 
 			} catch (SQLException sqle) {
 				
 				if (getDebugMode()) {
-					CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR Opening Oracle PC DB connection FAILED: " + sqle.toString());
+					System.out.println( "ERROR Opening Oracle PC DB connection FAILED: " + sqle.toString());
 				}
 				
 				throw new SQLException("Error opening Oracle db connection: " +  (String) prop.get("DB_NAME") + ":" + (String) prop.get("JDBC_PORT"));
@@ -207,7 +204,7 @@ public class MainClass {
 	protected static void closeDBConnection() throws SQLException {
 
 		if (getDebugMode()) {
-			CONSUMER_LOGGER.log(LogLevel.DEBUG, "Entering closeDBConnection");
+			System.out.println( "Entering closeDBConnection");
 		}
 
 		//Try to close OMS a PC connection
@@ -216,7 +213,7 @@ public class MainClass {
 				oraConexionOMS.close();
 			} catch (SQLException sqle) {
 				if (getDebugMode()) {
-					CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR Closing Oracle OMS DB connection FAILED: " + sqle.toString());
+					System.out.println( "ERROR Closing Oracle OMS DB connection FAILED: " + sqle.toString());
 				}
 					
 				throw new SQLException("Error closing OMS db connection");
@@ -228,7 +225,7 @@ public class MainClass {
 				oraConexionPC.close();
 			} catch (SQLException sqle) {
 				if (getDebugMode()) {
-					CONSUMER_LOGGER.log(LogLevel.SEVERE, "ERROR Closing Oracle PC DB connection FAILED: " + sqle.toString());
+					System.out.println( "ERROR Closing Oracle PC DB connection FAILED: " + sqle.toString());
 				}
 					
 				throw new SQLException("Error closing PC db connection");
@@ -236,7 +233,7 @@ public class MainClass {
 		}
 		
 		if (getDebugMode()) {
-			CONSUMER_LOGGER.log(LogLevel.INFO, "Connections closed");
+			System.out.println("Connections closed");
 
 		}
 	}

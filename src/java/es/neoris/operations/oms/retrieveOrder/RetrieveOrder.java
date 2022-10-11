@@ -1,29 +1,36 @@
-package es.neoris.operations.oms.createSession;
+package es.neoris.operations.oms.retrieveOrder;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
-import java.util.UUID;
 
 import javax.naming.InitialContext;
 import javax.rmi.PortableRemoteObject;
 
-import amdocs.bpm.ejb.ProcMgrSessionHome;
-import amdocs.epi.session.EpiSessionId;
-import es.neoris.operations.MainClass;
+import com.amdocs.cih.common.core.MaskInfo;
+import com.amdocs.cih.common.core.sn.ApplicationContext;
+import com.amdocs.cih.common.datatypes.OrderingContext;
+import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemote;
+import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemoteHome;
+import com.amdocs.cih.services.order.lib.OrderID;
+import com.amdocs.cih.services.order.lib.OrderRef;
+import com.amdocs.cih.services.order.lib.RetrieveOrderInput;
+import com.amdocs.cih.services.order.lib.RetrieveOrderOutput;
 
-/** Create a new session for using others services.
+import amdocs.epi.session.EpiSessionId;
+
+/**
  * @author Neoris
  *
  */
-public class CreateSession 
+public class RetrieveOrder 
 extends es.neoris.operations.MainClass 
 {
 	
 	// Properties from .properties file
-	static final String sDirEject = "es/neoris/operations/oms/createSession/";
-	static final String sNombreFich = "createsession.properties";
+	static final String sDirEject = "es/neoris/operations/oms/retrieveOrder/";
+	static final String sNombreFich = "retrieveorder.properties";
 	static final String sRutaIni = "res/";
 
 	private static String strURL_WLS = null;
@@ -33,23 +40,28 @@ extends es.neoris.operations.MainClass
 	
 	// Properties for WL connection
 	private static final String JNDI = "/omsserver_weblogic/amdocs/bpm/ejb/ProcMgrSession";
+	
 	private Object objref = null;
-	private static ProcMgrSessionHome AIFservice;
+	private static IOmsServicesRemote service = null;	
 	
 	// Variables to call service
-	private InputParamsCreateSession m_input;
-	private OutputParamsCreateSession m_output;
+	private InputParamsRetrieveOrder m_input;
+	private OutputParamsRetrieveOrder m_output;
 	private EpiSessionId sessionID;
+
 	
+	private String m_orderId;
+	
+
 	/**
 	 * Default no-operative constructor
 	 */
-	public CreateSession() 
+	public RetrieveOrder() 
 		throws Exception { 
 		
 		//Get info from .properties files 
 		try {
-			CreateSession.getConfiguration();
+			RetrieveOrder.getConfiguration();
 		}
 		catch (Exception e) {
 			
@@ -116,11 +128,6 @@ extends es.neoris.operations.MainClass
 		
 		// Generating WL connection
 		try {
-			sessionID = new EpiSessionId();
-			
-			m_input = new InputParamsCreateSession();
-			m_output = new OutputParamsCreateSession();
-			
 			// Defining properties to connect 
 			Properties propertiesCon = new Properties();
 			propertiesCon.put(InitialContext.INITIAL_CONTEXT_FACTORY, initialContextFactory);
@@ -138,7 +145,13 @@ extends es.neoris.operations.MainClass
 			// Open a RMI connection to server
 			InitialContext context = new InitialContext(propertiesCon);
 			objref = context.lookup(JNDI);
-			AIFservice = (ProcMgrSessionHome) PortableRemoteObject.narrow(objref, ProcMgrSessionHome.class);
+			IOmsServicesRemoteHome AIFservice = (IOmsServicesRemoteHome) PortableRemoteObject.narrow(objref, IOmsServicesRemoteHome.class);
+			service = AIFservice.create();
+			
+			
+			if (getDebugMode()) {
+				System.out.println("Object created.");
+			}
 			
 			return 0;
 			
@@ -150,23 +163,20 @@ extends es.neoris.operations.MainClass
 			
 			return -1;
 		}
-
 		
 	}
 	
-	
-	
+
 	/**
-	 * Prepared WL connection to execute the operation
+	 * Execute service retrieveOrder
 	 * @return 0 -> OK
 	 *        -1 -> Error connecting
 	 */
-	public OutputParamsCreateSession execProc() {
+	public OutputParamsRetrieveOrder execProc() {
 		
-		m_input = new InputParamsCreateSession();
-		m_output = new OutputParamsCreateSession();
-		sessionID = new EpiSessionId();
-
+		OutputParamsRetrieveOrder output = new OutputParamsRetrieveOrder();
+		RetrieveOrderOutput orderOutput = new RetrieveOrderOutput();
+		
 		if (getDebugMode()) {
 			System.out.println("Entering execProcess");			
 		}
@@ -176,38 +186,100 @@ extends es.neoris.operations.MainClass
 			if (getDebugMode()) {
 				System.out.println("ERROR WL connection failed. Exiting...");				
 			}
-			return m_output;
+			return output;
 		}
-		
 
-		try {
-			// Get the EpiSessionID object
-			String ids = UUID.randomUUID().toString();
-			m_input.setM_principalName(ids);
-			
-			sessionID = AIFservice.create().createSession(m_input.getM_principalName());			
-			m_output.setM_sessionID(sessionID);
-			
+  		// Fill the input object: m_input
+  		// ApplicationContext
+  		m_input.setM_appContext(getInputAppContext());
+  		
+  		// OrderingContext
+  		m_input.setM_orderContext(getInputOrderingContext());
+  		
+  		// RetrieveOrderInput
+  		m_input.setM_order(getInputRetrieveOrder(m_orderId));
+  		
+  		// MaksInfo
+  		m_input.setM_mask(getInputMaskInfo());
+
+  		//Call the AIF Service
+  		try {
+  			orderOutput = service.retrieveOrder(m_input.getM_appContext(), m_input.getM_orderContext(), m_input.getM_order(), m_input.getM_mask());
+  		
+	  		if (output != null) {
+	  			output.setM_order(orderOutput);
+	  		}
+	  		
+  		}catch(Exception e) {
 			if (getDebugMode()) {
-				System.out.println("Session created.");
+				System.out.println("ERROR getting orderOutput...");				
 			}
+			return output;
+
+  		}
 		
-			
-		}catch(Exception e) {
-		
-			if (getDebugMode()) {
-				System.out.println("ERROR getting EPISession. Exiting...");				
-			}
-			
-			return m_output;
-		}
-		
-		
-		return m_output;
+		return output;
 		
 	}
 	
+	/**
+	 * Initialize ApplicationContext object
+	 * @return ApplicationContext
+	 */
+	
+	private ApplicationContext getInputAppContext() {
+  		ApplicationContext ctx = new ApplicationContext();  		
+  		//ctx.setFormatLocale(MainClass.m_app.getGlobalSession().getLocale());
+  		
+  		return ctx;
+	}
+	
+	/**
+	 * Initialize OrderingContext
+	 * @return ApplicationContext
+	 */
+	
+	private OrderingContext getInputOrderingContext() {
+        OrderingContext ordCtx = new OrderingContext();
+        //ordCtx.setLocale(MainClass.m_app.getGlobalSession().getLocale());
+        //ordCtx.setSecurityToken(MainClass.m_app.getGlobalSession().getAsmTicket());
+	
+		return ordCtx;
+	}
+		
+	/**
+	 *  Initialize MaskInfo
+	 * @return MaskInfo
+	 */
+	private MaskInfo getInputMaskInfo() {
+		MaskInfo mask = new MaskInfo();
+		
+		return mask;
+	}
+	
 
+	/**
+	 *  Initialize RetrieveOrderInput
+	 * @return RetrieveOrderInput
+	 */
+	private RetrieveOrderInput getInputRetrieveOrder(String p_OrderID) {
+		RetrieveOrderInput order = new RetrieveOrderInput();
+		OrderRef orderRef = new OrderRef();
+		
+		// Fill the orderID object
+		OrderID orderID = new OrderID();		
+		orderID.setOrderID(p_OrderID);
+		
+		// Fill the orderRef
+		orderRef.setOrderID(orderID);
+		
+		//Fill the RetrieveOrderInput. Only index = 0
+		order.setOrderRef(0, orderRef);
+		
+		return order;
+	}
+	
+	
 	public void releaseSession() {
 		setSessionID(null);
 	}
@@ -223,20 +295,31 @@ extends es.neoris.operations.MainClass
 	}
 
 
-	public InputParamsCreateSession getM_input() {
+	public InputParamsRetrieveOrder getM_input() {
 		return m_input;
 	}
 
-	public void setM_input(InputParamsCreateSession m_input) {
+	public void setM_input(InputParamsRetrieveOrder m_input) {
 		this.m_input = m_input;
 	}
 
-	public OutputParamsCreateSession getM_output() {
+	public OutputParamsRetrieveOrder getM_output() {
 		return m_output;
 	}
 
-	public void setM_output(OutputParamsCreateSession m_output) {
+	public void setM_output(OutputParamsRetrieveOrder m_output) {
 		this.m_output = m_output;
 	}
 
+	public String getM_orderId() {
+		return m_orderId;
+	}
+
+
+	public void setM_orderId(String m_orderId) {
+		this.m_orderId = m_orderId;
+	}
+
+	
+	
 }

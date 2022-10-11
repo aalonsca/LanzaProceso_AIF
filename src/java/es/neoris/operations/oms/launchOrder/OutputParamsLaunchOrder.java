@@ -21,26 +21,20 @@ public class OutputParamsLaunchOrder
 implements OperationResults, Mappable, Serializable
 {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -561774673747545030L;
 
-	// Logger
-	static final Logger CONSUMER_LOGGER = Logger.getLogger("es.neoris.operations.oms.launchorder.OutputParamsLaunchOrder");
-
-	private StartOrderOutput m_order;
+	private StartOrderingProcessOutput m_order;
 	
 	
 	public OutputParamsLaunchOrder() {
 		/* default no-op constructor */
 	}
 	
-    public StartOrderOutput getM_order() {
+    public StartOrderingProcessOutput getM_order() {
 		return m_order;
 	}
 
-	public void setM_order(StartOrderOutput m_order) {
+	public void setM_order(StartOrderingProcessOutput m_order) {
 		this.m_order = m_order;
 	}
 
@@ -50,7 +44,7 @@ implements OperationResults, Mappable, Serializable
             Object value = null;
             value = map.get("StartOrderingProcessOutput");
             if (value != null && value instanceof StartOrderingProcessOutput) {
-                this.m_order = (StartOrderOutput) value;
+                this.m_order = (StartOrderingProcessOutput) value;
             }
         }
     }
