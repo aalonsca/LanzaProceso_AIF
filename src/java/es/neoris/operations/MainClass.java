@@ -6,6 +6,9 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.HashMap;
 
+import com.clarify.cbo.Application;
+import com.clarify.cbo.Session;
+
 import amdocs.epi.session.EpiSessionId;
 import es.neoris.operations.oms.createSession.CreateSession;
 import es.neoris.operations.oms.launchOrder.LaunchOrder;
@@ -30,6 +33,8 @@ public class MainClass {
 	protected static Connection oraConexionPC = null;
 	protected static boolean DebugMode = false;
 	protected static EpiSessionId epiSession = null;
+	protected static Application clfyApp = null;
+	protected static Session clfySession = null;
 	
 	// Variables to retrieve the results
 	static final String sDirEject = "res/";
@@ -58,8 +63,8 @@ public class MainClass {
 		
 		// New parent object. Initialize remote services
 		MainClass proceso = new MainClass();
-		CreateSession session = new CreateSession();
 		
+		CreateSession session = new CreateSession();		
 		try {
 						
 			epiSession = session.execProc().getM_sessionID(); 
@@ -107,6 +112,13 @@ public class MainClass {
 						}
 						
 						
+					}else{
+						if (process.writeResult() < 0) {
+							System.out.println("Error writing final file." + args[1] + " --> " + args[2] + "(" + args[3] + ")");
+							throw new Exception("Error writing final file " + args[1] + " --> " + args[2] + "(" + args[3] + ")");
+						}
+						
+						
 					}
 					
 				}
@@ -130,6 +142,13 @@ public class MainClass {
 	 */
 	public MainClass () {
 		System.out.println("Initalizing services...");
+		
+		clfyApp = new Application();
+
+		String strModuleDir = clfyApp.getModuleDir();
+		System.out.println("ClarifyEnv.xml Dir: " + strModuleDir);
+
+		clfySession = clfyApp.getGlobalSession();
 		
 	}
 

@@ -39,7 +39,7 @@ extends es.neoris.operations.MainClass
 	private static String strDebug = null;
 	
 	// Properties for WL connection
-	private static final String JNDI = "/omsserver_weblogic/amdocs/bpm/ejb/ProcMgrSession";
+	private static final String JNDI = "/omsserver_weblogic/com/amdocs/cih/services/oms/interfaces/IOmsServicesRemote";
 	
 	private Object objref = null;
 	private static IOmsServicesRemote service = null;	

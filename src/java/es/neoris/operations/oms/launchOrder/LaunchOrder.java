@@ -257,7 +257,7 @@ extends es.neoris.operations.MainClass
 	public OutputParamsLaunchOrder execProcess() {
 		OutputParamsLaunchOrder out = new OutputParamsLaunchOrder();
 		
-		boolean commit = true;
+		//boolean commit = true;
 
 		if (getDebugMode()) {
 			System.out.println("Entering execProcess");			
@@ -323,54 +323,51 @@ extends es.neoris.operations.MainClass
       			
       		}
       		
-      		//service.startOrderingProcess(arg0, arg1, arg2, arg3)
-      		// StartOrderingProcessInput
-			//Guardamos el objid recuperado en un fichero de texto
-			BufferedWriter bw = null;
-			try {
-				
-				File fichero = new File(sDirEject + "/out", getStrIDContract() + "_" + getStrVersion());
-				bw = new BufferedWriter(new FileWriter(fichero));
-				//bw.write(output.getM_order().getOrderID().toString());
-
-			} catch (IOException e) {
-				if (getDebugMode()) {
-					System.out.println("ERROR handling output file : " + e.toString());
-						
-				}
-					
-			} finally {
-				try {
-					bw.close();
-				} catch (Exception e) {}
-			}
-
-      		
 		} catch (Exception e) {
 			if (getDebugMode()) {
 				System.out.println("ERROR creating connection to WL: " + e.toString());
 			}
 			return out;
-			
-		} finally {
-			
-			try {
-				// cerramos las conexiones
-				MainClass.closeDBConnection();
-				
-			}catch (Exception e1) {
-				if (getDebugMode()) {
-					System.out.println("ERROR closing db connections: " + e1.toString());
-
-				}
-				return out;
-			}
 		}
 		
 		return out;
 			
 	}	
 
+	
+	public int writeResult() {
+		
+		//Guardamos el objid recuperado en un fichero de texto
+		BufferedWriter bw = null;
+		try {
+			
+			File fichero = new File(sDirEject + "/out", getStrIDContract() + "_" + getStrVersion());
+			bw = new BufferedWriter(new FileWriter(fichero));
+			//bw.write(output.getM_order().getOrderID().toString());
+
+		} catch (IOException e) {
+			if (getDebugMode()) {
+				System.out.println("ERROR handling output file : " + e.toString());
+				return -1;
+			}
+				
+		} finally {
+			try {
+				bw.close();
+			} catch (Exception e) {
+				System.out.println("ERROR closing output file : " + e.toString());
+				return -1;
+				
+			}
+		}
+
+	}
+	
+		return 0;
+		
+		
+	}
+	
 	/**
 	 * Initialize ApplicationContext object
 	 * @return ApplicationContext
