@@ -1,1 +1,10 @@
+/MANIFEST.MF
+/compilar_java.cmd
+/compilar_java.ksh
+/crear_jar.ksh
+/createsession.properties
 /es/
+/launchorder.properties
+/mainclass.properties
+/retrieveorder.properties
+/salida.out

@@ -3,15 +3,20 @@ package es.neoris.operations.oms.createSession;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Properties;
-import java.util.UUID;
 
 import javax.naming.InitialContext;
 import javax.rmi.PortableRemoteObject;
 
-import amdocs.bpm.ejb.ProcMgrSessionHome;
+import com.amdocs.cih.common.core.MaskInfo;
+import com.amdocs.cih.common.core.sn.ApplicationContext;
+import com.amdocs.cih.common.datatypes.OrderingContext;
+import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemote;
+import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemoteHome;
+import com.amdocs.cih.services.oms.lib.CreateOMSSessionRequest;
+
 import amdocs.epi.session.EpiSessionId;
-import es.neoris.operations.MainClass;
 
 /** Create a new session for using others services.
  * @author Neoris
@@ -32,9 +37,11 @@ extends es.neoris.operations.MainClass
 	private static String strDebug = null;
 	
 	// Properties for WL connection
-	private static final String JNDI = "/omsserver_weblogic/amdocs/bpm/ejb/ProcMgrSession";
+	//private static final String JNDI = "/omsserver_weblogic/amdocs/bpm/ejb/ProcMgrSession";
+	private static final String JNDI = "/omsserver_weblogic/com/amdocs/cih/services/oms/interfaces/IOmsServicesRemote";
 	private Object objref = null;
-	private static ProcMgrSessionHome AIFservice;
+	private static IOmsServicesRemoteHome AIFservice;
+	private static IOmsServicesRemote service = null;
 	
 	// Variables to call service
 	private InputParamsCreateSession m_input;
@@ -138,7 +145,8 @@ extends es.neoris.operations.MainClass
 			// Open a RMI connection to server
 			InitialContext context = new InitialContext(propertiesCon);
 			objref = context.lookup(JNDI);
-			AIFservice = (ProcMgrSessionHome) PortableRemoteObject.narrow(objref, ProcMgrSessionHome.class);
+			AIFservice = (IOmsServicesRemoteHome) PortableRemoteObject.narrow(objref, IOmsServicesRemoteHome.class);
+			service = AIFservice.create();
 			
 			return 0;
 			
@@ -181,12 +189,14 @@ extends es.neoris.operations.MainClass
 		
 
 		try {
-			// Get the EpiSessionID object
-			String ids = UUID.randomUUID().toString();
-			m_input.setM_principalName(ids);
+			// 
+			m_input.setM_appContext(getInputAppContext());
+			m_input.setM_orderContext(getInputOrderingContext());
+			m_input.setM_mask(getInputMaskInfo());
+			m_input.setM_OMSSession(getInputOMSSession());
 			
-			sessionID = AIFservice.create().createSession(m_input.getM_principalName());			
-			m_output.setM_sessionID(sessionID);
+			m_output.setM_sessionID(service.createOMSSession(m_input.getM_appContext(), m_input.getM_orderContext(), m_input.getM_OMSSession(), m_input.getM_mask()));			
+
 			
 			if (getDebugMode()) {
 				System.out.println("Session created.");
@@ -196,7 +206,7 @@ extends es.neoris.operations.MainClass
 		}catch(Exception e) {
 		
 			if (getDebugMode()) {
-				System.out.println("ERROR getting EPISession. Exiting...");				
+				System.out.println("ERROR getting EPISession. Exiting..." + e.toString());				
 			}
 			
 			return m_output;
@@ -222,7 +232,53 @@ extends es.neoris.operations.MainClass
 		this.sessionID = sessionID;
 	}
 
-
+	/**
+	 * Initialize ApplicationContext object
+	 * @return ApplicationContext
+	 */
+	
+	private ApplicationContext getInputAppContext() {
+		ApplicationContext ctx = new ApplicationContext();  		
+  		ctx.setFormatLocale(new Locale("en_US_", "en", "US"));
+  		//ctx.setFormatLocale(MainClass.m_app.getGlobalSession().getLocale());
+  		
+  		return ctx;
+	}
+	
+	/**
+	 * Initialize OrderingContext
+	 * @return ApplicationContext
+	 */
+	
+	private OrderingContext getInputOrderingContext() {
+        OrderingContext ordCtx = new OrderingContext();
+        ordCtx.setLocale(new Locale("en_US_", "en", "US"));
+		return ordCtx;
+	}
+		
+	/**
+	 *  Initialize MaskInfo
+	 * @return MaskInfo
+	 */
+	private MaskInfo getInputMaskInfo() {
+		MaskInfo mask = new MaskInfo();
+		
+		return mask;
+	}
+	
+	private CreateOMSSessionRequest getInputOMSSession() {
+		CreateOMSSessionRequest sessionRequest = new CreateOMSSessionRequest();
+		
+		String ticket = "";
+		
+		sessionRequest.setLanguage("en");
+		sessionRequest.setClientMachine("");
+		sessionRequest.setAsmTicket(ticket);
+		
+		return sessionRequest;
+		
+	}
+	
 	public InputParamsCreateSession getM_input() {
 		return m_input;
 	}

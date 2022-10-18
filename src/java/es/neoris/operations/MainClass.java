@@ -1,6 +1,7 @@
 package es.neoris.operations;
 
 
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -9,7 +10,6 @@ import java.util.HashMap;
 import com.clarify.cbo.Application;
 import com.clarify.cbo.Session;
 
-import amdocs.epi.session.EpiSessionId;
 import es.neoris.operations.oms.createSession.CreateSession;
 import es.neoris.operations.oms.launchOrder.LaunchOrder;
 import es.neoris.operations.oms.launchOrder.OutputParamsLaunchOrder;
@@ -32,9 +32,12 @@ public class MainClass {
 	protected static Connection oraConexionOMS = null;
 	protected static Connection oraConexionPC = null;
 	protected static boolean DebugMode = false;
-	protected static EpiSessionId epiSession = null;
-	protected static Application clfyApp = null;
-	protected static Session clfySession = null;
+	protected static String ticketAMS;
+	//protected static Application clfyApp = null;
+	//protected static Session clfySession = null;
+
+	private Application clfyApp = null;
+	private Session clfySession = null;
 	
 	// Variables to retrieve the results
 	static final String sDirEject = "res/";
@@ -61,21 +64,27 @@ public class MainClass {
 			throw new Exception("Error. Input parameters missing.");
 		}
 		
-		// New parent object. Initialize remote services
-		MainClass proceso = new MainClass();
+		try {
+			// New parent object. Initialize remote services
+			MainClass proceso = new MainClass(true);
+
+		}catch(Exception e) {
+			System.out.println("ERROR " + e.toString());
+			System.exit(0);
+		}
 		
 		CreateSession session = new CreateSession();		
 		try {
 						
-			epiSession = session.execProc().getM_sessionID(); 
-			if (epiSession == null) {
-				System.out.println("Error opening WL connection.");
-				throw new Exception("Error opening WL connection");
+			ticketAMS = session.execProc().getM_sessionID().getSecurityProfileID(); 
+			if (ticketAMS == null) {
+				System.out.println("Error getting ticket AMS.");
+				throw new Exception("Error getting ticket AMS.");
 			}
  
 		}catch(Exception e) {
-			System.out.println("Error creating EpiSessionID");
-			throw new Exception("Error creating EpiSessionID");
+			System.out.println("Error creating OMSSession.");
+			throw new Exception("Error creating OMSSession.");
 		}
 		
 		
@@ -89,6 +98,7 @@ public class MainClass {
 					
 					//Retrieve the order info
 					RetrieveOrder order = new RetrieveOrder();
+					order.setM_orderId(args[1]); //Fill the orderID through the input param
 					OutputParamsRetrieveOrder pOrder = order.execProc();
 					
 					if (pOrder == null) {
@@ -125,14 +135,15 @@ public class MainClass {
 			}
 			
 		}catch(Exception e) {
-			System.out.println("Error executing " + args[0] + "." + e.getLocalizedMessage());
+			System.out.println("Error executing " + args[0] + "." + e.toString());
 			throw new Exception("Error executing " + args[0] + ". Exiting...");
 		}
 		
-		finally {
-			session.releaseSession();
+		//finally {
 			
-		}
+			//session.releaseSession();
+			
+		//}
 			
 		
 	}
@@ -141,18 +152,88 @@ public class MainClass {
 	 * Constructor
 	 */
 	public MainClass () {
-		System.out.println("Initalizing services...");
-		
-		clfyApp = new Application();
-
-		String strModuleDir = clfyApp.getModuleDir();
-		System.out.println("ClarifyEnv.xml Dir: " + strModuleDir);
-
-		clfySession = clfyApp.getGlobalSession();
+		//no-op constructor
 		
 	}
 
+	static {
+		
+		boolean bLoaded = false;
+		System.out.println(System.getProperty("java.library.path"));
+		String strLib = "JDispLoad";
+		//KCboNull temp = new KCboNull();
+		Throwable loadError = null;
+	    
+		for (int i = 0; (!bLoaded) && (i < 64);) {
+			try
+			{
+				if (i != 0) strLib = "JDispLoad" + i;
+				String strLibPath = System.mapLibraryName(strLib);
+				System.loadLibrary(strLibPath);
+				bLoaded = true;
+				if (i > 0) {}
+				i++;
+			}
+			catch (Throwable t)
+			{
+			   i++;
+				loadError = t;
+			}
+		}
+
+		if (bLoaded) {
+			int jarVer = 0;
+			/*
+			try {
+				jarVer = buildCboJarVersion();
+			} catch (Throwable t) {}
+			
+			if (jarVer > 0) CBO_JAR_VERSION = jarVer;
+			try {
+				initIDs(12 + CBO_JAR_VERSION * 100, null);
+			} catch (Throwable t) {
+				bLoaded = false;
+				t.printStackTrace();
+			}
+			*/
+		}
+		else
+		{
+		loadError.printStackTrace();
+		System.out.println();
+		System.out.println("There may not be enough copies of the library for the class loaders");
+		System.out.println("that need it. Check your system settings, and make sure that there are");
+		System.out.println("enough copies of JDispLoad for the class loaders that need them.");
+		System.out.println("You can make up to 63 copies of the library - 16 are provided by default.");
+		}
+	}			
+
+
 	
+	
+	/**
+	 * Constructor
+	 */
+	public MainClass (boolean initApp) {
+		System.out.println("Initalizing services...");
+
+		if (initApp) {
+			
+			System.out.println(System.getProperty("java.library.path"));
+			
+			clfyApp = new Application();
+	
+			String strModuleDir = clfyApp.getModuleDir();
+			System.out.println("ClarifyEnv.xml Dir: " + strModuleDir);
+	
+			clfySession = clfyApp.getGlobalSession();
+			
+
+		}
+			
+		
+	}
+
 
 	
 	/**

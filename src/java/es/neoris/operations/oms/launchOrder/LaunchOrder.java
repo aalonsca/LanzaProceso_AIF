@@ -360,14 +360,11 @@ extends es.neoris.operations.MainClass
 				
 			}
 		}
-
-	}
-	
 		return 0;
-		
-		
 	}
 	
+		
+		
 	/**
 	 * Initialize ApplicationContext object
 	 * @return ApplicationContext

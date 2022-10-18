@@ -26,10 +26,9 @@ implements OperationInputs, Mappable, Serializable
 	private static final long serialVersionUID = 8802346207864925860L;
 	
 	// Input objects
-	// Input objects
 	private ApplicationContext m_appContext;
 	private OrderingContext m_orderContext;
-	private RetrieveOrderInput m_order;
+	private RetrieveOrderInput m_order = new RetrieveOrderInput();
 	private MaskInfo m_mask;
 
 

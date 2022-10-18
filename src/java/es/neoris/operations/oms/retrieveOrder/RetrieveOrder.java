@@ -3,6 +3,7 @@ package es.neoris.operations.oms.retrieveOrder;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Properties;
 
 import javax.naming.InitialContext;
@@ -19,6 +20,9 @@ import com.amdocs.cih.services.order.lib.RetrieveOrderInput;
 import com.amdocs.cih.services.order.lib.RetrieveOrderOutput;
 
 import amdocs.epi.session.EpiSessionId;
+import es.neoris.operations.MainClass;
+
+
 
 /**
  * @author Neoris
@@ -45,8 +49,8 @@ extends es.neoris.operations.MainClass
 	private static IOmsServicesRemote service = null;	
 	
 	// Variables to call service
-	private InputParamsRetrieveOrder m_input;
-	private OutputParamsRetrieveOrder m_output;
+	private InputParamsRetrieveOrder m_input = new InputParamsRetrieveOrder();
+	private OutputParamsRetrieveOrder m_output = new OutputParamsRetrieveOrder();
 	private EpiSessionId sessionID;
 
 	
@@ -146,6 +150,7 @@ extends es.neoris.operations.MainClass
 			InitialContext context = new InitialContext(propertiesCon);
 			objref = context.lookup(JNDI);
 			IOmsServicesRemoteHome AIFservice = (IOmsServicesRemoteHome) PortableRemoteObject.narrow(objref, IOmsServicesRemoteHome.class);
+
 			service = AIFservice.create();
 			
 			
@@ -189,30 +194,40 @@ extends es.neoris.operations.MainClass
 			return output;
 		}
 
-  		// Fill the input object: m_input
-  		// ApplicationContext
-  		m_input.setM_appContext(getInputAppContext());
-  		
-  		// OrderingContext
-  		m_input.setM_orderContext(getInputOrderingContext());
-  		
-  		// RetrieveOrderInput
-  		m_input.setM_order(getInputRetrieveOrder(m_orderId));
-  		
-  		// MaksInfo
-  		m_input.setM_mask(getInputMaskInfo());
-
+		try {
+	  		// Fill the input object: m_input
+	  		// ApplicationContext
+	  		m_input.setM_appContext(getInputAppContext());
+	  		
+	  		// OrderingContext
+	  		m_input.setM_orderContext(getInputOrderingContext());
+	  		
+	  		// RetrieveOrderInput
+	  		m_input.setM_order(getInputRetrieveOrder(m_orderId));
+	  		
+	  		// MaksInfo
+	  		m_input.setM_mask(getInputMaskInfo());
+	  		
+		}catch(Exception e) {
+			if (getDebugMode()) {
+				System.out.println("ERROR filling input parameters." + e.toString());				
+			}
+			return output;
+			
+		}
+		
   		//Call the AIF Service
   		try {
+  			//orderOutput = service.retrieveOrder(m_input.getM_appContext(), m_input.getM_orderContext(), m_input.getM_order(), m_input.getM_mask());
   			orderOutput = service.retrieveOrder(m_input.getM_appContext(), m_input.getM_orderContext(), m_input.getM_order(), m_input.getM_mask());
-  		
+  			
 	  		if (output != null) {
 	  			output.setM_order(orderOutput);
 	  		}
 	  		
   		}catch(Exception e) {
 			if (getDebugMode()) {
-				System.out.println("ERROR getting orderOutput...");				
+				System.out.println("ERROR getting orderOutput..." + e.toString());				
 			}
 			return output;
 
@@ -228,7 +243,8 @@ extends es.neoris.operations.MainClass
 	 */
 	
 	private ApplicationContext getInputAppContext() {
-  		ApplicationContext ctx = new ApplicationContext();  		
+		ApplicationContext ctx = new ApplicationContext();  		
+  		ctx.setFormatLocale(new Locale("en_US_", "en", "US"));
   		//ctx.setFormatLocale(MainClass.m_app.getGlobalSession().getLocale());
   		
   		return ctx;
@@ -241,9 +257,9 @@ extends es.neoris.operations.MainClass
 	
 	private OrderingContext getInputOrderingContext() {
         OrderingContext ordCtx = new OrderingContext();
-        //ordCtx.setLocale(MainClass.m_app.getGlobalSession().getLocale());
-        //ordCtx.setSecurityToken(MainClass.m_app.getGlobalSession().getAsmTicket());
-	
+        ordCtx.setLocale(new Locale("en_US_", "en", "US"));
+        ordCtx.setSecurityToken(MainClass.ticketAMS);
+        
 		return ordCtx;
 	}
 		
@@ -273,8 +289,13 @@ extends es.neoris.operations.MainClass
 		// Fill the orderRef
 		orderRef.setOrderID(orderID);
 		
+		//Fill the array of OrderRef
+		OrderRef[] arrOrderRef = new OrderRef[1];
+		arrOrderRef[0] = orderRef;
+		
 		//Fill the RetrieveOrderInput. Only index = 0
-		order.setOrderRef(0, orderRef);
+		order.setOrderRef(arrOrderRef);
+		
 		
 		return order;
 	}
