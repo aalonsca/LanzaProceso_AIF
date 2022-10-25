@@ -8,10 +8,12 @@ import com.amdocs.cih.common.core.MaskInfo;
 import com.amdocs.cih.common.core.sn.ApplicationContext;
 import com.amdocs.cih.common.datatypes.OrderingContext;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemote;
+import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemoteHome;
 import com.amdocs.cih.services.oms.lib.CreateOMSSessionRequest;
 
 import amdocs.epi.session.EpiSessionId;
 import es.neoris.operations.BaseAIF;
+import es.neoris.operations.oms.launchOrder.LaunchOrder;
 
 /** Create a new session for using others services.
  * @author Neoris
@@ -97,7 +99,7 @@ extends es.neoris.operations.BaseAIF
 		try {
 
 			//Open WL connection through RMI
-			service = (IOmsServicesRemote) BaseAIF.prepareConnWL(connectionProp, JNDI, CreateSession.debugMode);
+			service =((IOmsServicesRemoteHome) BaseAIF.createWLConnection(connectionProp, JNDI, CreateSession.debugMode)).create();
 
 			// Fill the input parameters
 			m_input.setM_appContext(getInputAppContext());

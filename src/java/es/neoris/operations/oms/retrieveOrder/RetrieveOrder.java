@@ -7,12 +7,14 @@ import com.amdocs.cih.common.core.MaskInfo;
 import com.amdocs.cih.common.core.sn.ApplicationContext;
 import com.amdocs.cih.common.datatypes.OrderingContext;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemote;
+import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemoteHome;
 import com.amdocs.cih.services.order.lib.OrderID;
 import com.amdocs.cih.services.order.lib.OrderRef;
 import com.amdocs.cih.services.order.lib.RetrieveOrderInput;
 
 import amdocs.epi.session.EpiSessionId;
 import es.neoris.operations.BaseAIF;
+import es.neoris.operations.oms.createSession.CreateSession;
 
 
 
@@ -102,7 +104,7 @@ extends es.neoris.operations.BaseAIF
 		try {
 			
 			//Open WL connection through RMI
-			service = (IOmsServicesRemote) BaseAIF.prepareConnWL(connectionProp, JNDI, RetrieveOrder.debugMode);
+			service = ((IOmsServicesRemoteHome) BaseAIF.createWLConnection(connectionProp, JNDI, RetrieveOrder.debugMode)).create();
 			
 			// Fill the input parameters
 	  		m_input.setM_appContext(getInputAppContext());

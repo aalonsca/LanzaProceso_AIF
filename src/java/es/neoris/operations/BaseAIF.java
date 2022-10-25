@@ -219,7 +219,7 @@ public class BaseAIF {
 	 * @return 0 -> OK
 	 *        -1 -> Error connecting
 	 */
-	protected static EJBObject prepareConnWL(Map connectionProp, String JNDI, Boolean debug) {
+	protected static EJBObject createWLConnection(Map connectionProp, String JNDI, Boolean debug) {
 		
 		if (debug) {
 			System.out.println("Entering prepareConnWL..."); 
@@ -247,8 +247,8 @@ public class BaseAIF {
 			// Open a RMI connection to server
 			InitialContext context = new InitialContext(propertiesCon);
 			objref = context.lookup(JNDI);
-			IOmsServicesRemoteHome AIFservice = (IOmsServicesRemoteHome) PortableRemoteObject.narrow(objref, IOmsServicesRemoteHome.class);
-			return (IOmsServicesRemote) AIFservice.create();
+			EJBObject AIFservice = (EJBObject) PortableRemoteObject.narrow(objref, IOmsServicesRemoteHome.class);
+			return AIFservice;
 			
 			
 		}catch(Exception e){

@@ -18,6 +18,7 @@ import com.amdocs.cih.common.datatypes.OrderActionUserAction;
 import com.amdocs.cih.common.datatypes.OrderUserAction;
 import com.amdocs.cih.common.datatypes.OrderingContext;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemote;
+import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemoteHome;
 import com.amdocs.cih.services.oms.lib.StartOrderInput;
 import com.amdocs.cih.services.oms.lib.StartOrderOutput;
 import com.amdocs.cih.services.oms.rvt.domain.OrderActionStatusRVT;
@@ -164,9 +165,9 @@ extends es.neoris.operations.BaseAIF
 		
 		// Calculate mandatory info to generate input object 
 		try {
-	          
+			
 			//Open WL connection through RMI
-			service = (IOmsServicesRemote) BaseAIF.prepareConnWL(connectionProp, JNDI, LaunchOrder.debugMode);
+			service = ((IOmsServicesRemoteHome) BaseAIF.createWLConnection(connectionProp, JNDI, LaunchOrder.debugMode)).create();
 
       		// Fill the input object: m_input
       		m_input.setM_appContext(getInputAppContext());
