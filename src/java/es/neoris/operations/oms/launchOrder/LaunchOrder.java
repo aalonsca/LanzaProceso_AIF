@@ -5,29 +5,71 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.CallableStatement;
+import java.sql.ResultSet;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
+import java.sql.Connection;
 
 import javax.naming.InitialContext;
 import javax.rmi.PortableRemoteObject;
 
 import com.amdocs.cih.common.core.MaskInfo;
 import com.amdocs.cih.common.core.sn.ApplicationContext;
+import com.amdocs.cih.common.datatypes.DynamicAttribute;
+import com.amdocs.cih.common.datatypes.OrderActionUserAction;
+import com.amdocs.cih.common.datatypes.OrderUserAction;
 import com.amdocs.cih.common.datatypes.OrderingContext;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemote;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemoteHome;
+import com.amdocs.cih.services.oms.lib.StartOrderInput;
+import com.amdocs.cih.services.oms.lib.StartOrderOutput;
 import com.amdocs.cih.services.oms.lib.StartOrderingProcessInput;
 import com.amdocs.cih.services.oms.lib.StartOrderingProcessOutput;
+import com.amdocs.cih.services.oms.rvt.domain.OrderActionStatusRVT;
+import com.amdocs.cih.services.oms.rvt.domain.OrderActionTypeRVT;
+import com.amdocs.cih.services.oms.rvt.domain.OrderActionUserActionRVT;
+import com.amdocs.cih.services.oms.rvt.domain.OrderModeRVT;
+import com.amdocs.cih.services.oms.rvt.domain.OrderStatusRVT;
+import com.amdocs.cih.services.oms.rvt.domain.OrderUserActionRVT;
+import com.amdocs.cih.services.oms.rvt.referencetable.SalesChannelRVT;
 import com.amdocs.cih.services.order.lib.Order;
+import com.amdocs.cih.services.order.lib.OrderHeader;
+import com.amdocs.cih.services.orderaction.lib.OrderAction;
+import com.amdocs.cih.services.orderaction.lib.OrderActionData;
+import com.amdocs.cih.services.orderaction.lib.OrderActionDetails;
+import com.amdocs.cih.services.orderaction.lib.OrderActionID;
+import com.amdocs.cih.services.party.lib.OrganizationID;
+import com.amdocs.cih.services.subscription.lib.SubscriptionGroupID;
 
-import es.neoris.operations.MainClass;
+import amdocs.epi.util.EpiCollections;
+import amdocs.oms.apcore.ApItem;
+import amdocs.oms.infra.domains.ActionTypeTP;
+import amdocs.oms.infra.domains.BooleanValTP;
+import amdocs.oms.infra.domains.ConfigurationTP;
+import amdocs.oms.infra.domains.LanguageCodeTP;
+import amdocs.oms.infra.domains.OrderActionParentRelationTP;
+import amdocs.oms.infra.domains.OrderActionStatusTP;
+import amdocs.oms.infra.domains.RecontactPeriodTP;
+import amdocs.oms.infra.domains.ActionTypeTP.ActionType;
+import amdocs.oms.infra.domains.BooleanValTP.BooleanVal;
+import amdocs.oms.infra.domains.LanguageCodeTP.LanguageCode;
+import amdocs.oms.infra.domains.OrderActionParentRelationTP.OrderActionParentRelation;
+import amdocs.oms.infra.domains.OrderActionStatusTP.OrderActionStatus;
+import amdocs.oms.infra.domains.RecontactPeriodTP.RecontactPeriod;
+import amdocs.oms.infra.domains.dynamic.DynOrderModeTP;
+import amdocs.oms.infra.domains.dynamic.DynOrderModeTP.DynOrderMode;
+import amdocs.oms.oem.OmOrderAction;
+import es.neoris.operations.BaseAIF;
+import es.neoris.operations.oms.retrieveOrder.RetrieveOrder;
 
 /**
  * @author Neoris
  *
  */
 public class LaunchOrder 
-extends es.neoris.operations.MainClass 
+extends es.neoris.operations.BaseAIF 
 {
 	// Logger
 	//static final Logger CONSUMER_LOGGER = Logger.getLogger("es.neoris.operations.oms.launchorder.LaunchOrder");
@@ -36,19 +78,13 @@ extends es.neoris.operations.MainClass
 	static final String sNombreFich = "launchorder.properties";
 	static final String sRutaIni = "res/";
 
+	// Properties for WL connection
+	protected static Boolean debugMode = false;
+	private HashMap<String, String> connectionProp = new HashMap<String, String>();
 	private static HashMap<String, String> m_credential = new HashMap<String, String>();
-	private static String strURL_WLS = null;
-	private static String strUser_WLS = null;
-	private static String strPassword_WLS = null;
-	private static String strDS_WLS_OMS = null;
-	private static String strDS_WLS_PC = null;
-	private static String strDebug = null;
-	private static String strDBName = null;
-
 	
 	// Properties for WL connection
 	private static final String JNDI = "/omsserver_weblogic/com/amdocs/cih/services/oms/interfaces/IOmsServicesRemote";
-	private Object objref = null;
 	private static IOmsServicesRemote service = null;
 
 
@@ -58,191 +94,80 @@ extends es.neoris.operations.MainClass
 	private String m_strVersion;
 	private String m_strObjidLanzado;	
 	private Order m_order;
-	
 
 
 	// Variables to call service
 	private InputParamsLaunchOrder m_input;
 	private OutputParamsLaunchOrder m_output;
-	
+
+	//Queries
+	private String strQueryOmsOrder = "SELECT T.CTDB_LAST_UPDATOR, T.ORDER_MODE, T.GROUP_ID, T.ROOT_CUSTOMER_ID, T.STATUS, T.OPPORTUNITY_ID, T.CURRENT_SALES_CHANNEL, T.DEALER_CODE, T.ADDRESS_ID, T.EXT_REF_NUM" // 10
+			 + ", SERVICE_REQ_DATE, CREATION_DATE, APPLICATION_DATE, PROP_EXPIRY_DATE, CUST_ORDER_REF, CONTACT_ID, CUSTOMER_ID, DEPOSIT_ID, ORDER_UNIT_ID" // 20
+			 + ", ORDER_UNIT_TYPE, PRIORITY, PROP_EXPIRY_DATE, RECONTACT_IN_MONTH, RECONTACT_IN_YEAR, RECONTACT_PERIOD, SOURCE_ORDER" // 30
+			 + " FROM TBORDER T"
+			 + " WHERE T.REFERENCE_NUMBER = '%1'";
+
 	
 	/**
 	 * Default no-operative constructor
 	 */
-	public LaunchOrder() throws Exception {
-		throw new Exception("Cannot create object. Use LaunchOrder(String, String, String) instead.");
+	public LaunchOrder() {
+		// no-op constructor
 	}
 	
-	
+
 	/**
-	 * Create new object and load .properties
-	 * @param strIDContract		-> id object when the process will be attach 
-	 * @param strProcessName	-> process name to create
-	 * @param strVersion		-> process version 
+	 * Reads .properties file to prepare a connection to WL
+	 * @param getConf
 	 * @throws Exception
 	 */
-	
-	@Deprecated	
-	public LaunchOrder(String strIDContract, String strProcessName, String strVersion ) 
-			throws Exception {
-
-		// Initialize class properties
-		setStrIDContract(strIDContract);
-		setStrProcessName(strProcessName);
-		setStrVersion(strVersion);
+	public LaunchOrder(Boolean getConf) 
+		throws Exception { 
 		
-		//Get info from .properties files 
-		try {
-			LaunchOrder.getConfiguration();
-		}
-		catch (Exception e) {
-			System.out.println("Error getting " + sNombreFich + ": " + e.getLocalizedMessage());
-			throw new Exception("Error reading .properties file");
-			
-		}
-		
-	}
-
-	/**
-	 * Create new object and load .properties
-	 * @param Order				-> Order object, retrieve by the service 
-	 * @param strProcessName	-> process name to create
-	 * @param strVersion		-> process version 
-	 * @throws Exception
-	 */
-	public LaunchOrder(Order order, String strProcessName, String strVersion ) 
-			throws Exception {
-
-		// Initialize class properties
-		setStrProcessName(strProcessName);
-		setStrVersion(strVersion);
-		setM_order(order);
-		
-		//Get info from .properties files 
-		try {
-			LaunchOrder.getConfiguration();
-		}
-		catch (Exception e) {
-			System.out.println("Error getting " + sNombreFich + ": " + e.getLocalizedMessage());
-			throw new Exception("Error reading .properties file");
-			
-		}
-		
-	}
-
-
-	
-	/**
-	 * Gets service configuration from .properties file
-	 * @throws IOException
-	 */
-	private static void getConfiguration() 
-			throws IOException, Exception {
-		
-		try {
-			//Get environment values from .properties
-			Properties properties = new Properties();
-			
-			//Open file
-			File fProp = new File(sRutaIni, sNombreFich);
-			
-			if (!fProp.canRead()) {
-				throw new IOException("File does not exists: " + fProp.getAbsolutePath());
-			}
-			
-			// Load .properties into local variables y close file
-			FileInputStream fiProp = new FileInputStream(fProp);
-			properties.load(fiProp);
-			fiProp.close();
-		
-			strURL_WLS = properties.getProperty("WLS_URL");
-			strUser_WLS = properties.getProperty("WLS_USER");
-			strPassword_WLS = properties.getProperty("WLS_PASS");
-			strDS_WLS_OMS = properties.getProperty("WLS_DS_OMS");
-			strDS_WLS_PC =  properties.getProperty("WLS_DS_PC");
-			strDebug = properties.getProperty("DEBUG");
-	
-			// Loading data for db connection
-			m_credential.put("DB_USER_OMS", properties.getProperty("DB_USER_OMS"));
-			m_credential.put("DB_PASS_OMS", properties.getProperty("DB_PASS_OMS"));
-			m_credential.put("DB_USER_PC", properties.getProperty("DB_USER_PC"));
-			m_credential.put("DB_PASS_PC", properties.getProperty("DB_PASS_PC"));
-			m_credential.put("DB_NAME", properties.getProperty("DB"));
-			m_credential.put("JDBC_DB", properties.getProperty("DB_JDBC"));
-			m_credential.put("JDBC_PORT", properties.getProperty("DB_PORT"));
-			
-			
-			if ((!"".equals(strDebug)) && "1".equals(strDebug)) {
+		if (getConf) {
+			//Get info from .properties files 
+			try {
+				Properties properties = BaseAIF.getProperties(sRutaIni, sNombreFich);
 				
-				setDebugMode(true);
-				System.out.println( "URL:" + strURL_WLS);
-				System.out.println( "USER:" + strUser_WLS);
-				System.out.println( "DATASOURCE OMS:" + strDS_WLS_OMS);
-				System.out.println( "DATASOURCE PC:" + strDS_WLS_PC);
-				System.out.println( "DB:" + strDBName);			
-				System.out.println( "USER_OMS:" + m_credential.get("DB_USER_OMS"));
-				System.out.println( "USER_PC:" + m_credential.get("DB_USER_PC"));
-				System.out.println( "JDBC:" + m_credential.get("JDBC_DB"));
-				System.out.println( "PORT:" + m_credential.get("JDBC_PORT"));
-			}
+				connectionProp.put("WLS_URL", properties.getProperty("WLS_URL"));
+				connectionProp.put("WLS_USER", properties.getProperty("WLS_USER"));
+				connectionProp.put("WLS_PASS", properties.getProperty("WLS_PASS"));
+				connectionProp.put("WLS_DS_OMS", properties.getProperty("WLS_DS_OMS"));
+				connectionProp.put("WLS_DS_PC", properties.getProperty("WLS_DS_PC"));
+				connectionProp.put("DEBUG", properties.getProperty("DEBUG"));
 
-		}catch(Exception e) {
+				
+				// Loading data for db connection
+				m_credential.put("DB_USER_OMS", properties.getProperty("DB_USER_OMS"));
+				m_credential.put("DB_PASS_OMS", properties.getProperty("DB_PASS_OMS"));
+				m_credential.put("DB_USER_PC", properties.getProperty("DB_USER_PC"));
+				m_credential.put("DB_PASS_PC", properties.getProperty("DB_PASS_PC"));
+				m_credential.put("DB_NAME", properties.getProperty("DB"));
+				m_credential.put("JDBC_DB", properties.getProperty("DB_JDBC"));
+				m_credential.put("JDBC_PORT", properties.getProperty("DB_PORT"));
+				
 			
-			System.out.println("ERROR Opening .properties FAILED: " + e.toString()); 
-			throw new Exception("Error loading .properties file. Exiting...");
-
-		}
-
-	}		
-
-
-	/**
-	 * Prepared WL connection to execute the operation
-	 * @return 0 -> OK
-	 *        -1 -> Error connecting
-	 */
-	private int prepareConnWL() {
-		
-		if (getDebugMode()) {
-			System.out.println("Entering prepareConnWL..."); 
-		}
-		
-		// Generating WL connection
-		try {
-			// Defining properties to connect 
-			Properties propertiesCon = new Properties();
-			propertiesCon.put(InitialContext.INITIAL_CONTEXT_FACTORY, initialContextFactory);
-			propertiesCon.put(InitialContext.PROVIDER_URL, strURL_WLS);
-			if (!"".equals(strUser_WLS) && strUser_WLS != null) {
-				propertiesCon.put(InitialContext.SECURITY_PRINCIPAL, strUser_WLS);
-				propertiesCon.put(InitialContext.SECURITY_CREDENTIALS, strPassword_WLS == null ? "" : strPassword_WLS);
-			}
-
-			if (getDebugMode()) {
-				System.out.println("Properties created: " + propertiesCon.toString());
+				if ((!"".equals(properties.getProperty("DEBUG"))) && "1".equals(properties.getProperty("DEBUG"))) { 
+					LaunchOrder.debugMode = true;				
+			
+					System.out.println( "URL:" + properties.getProperty("WLS_URL"));
+					System.out.println( "USER:" + properties.getProperty("WLS_USER"));
+					System.out.println( "DATASOURCE OMS:" + properties.getProperty("WLS_DS_OMS"));
+					System.out.println( "DATASOURCE PC:" + properties.getProperty("WLS_DS_PC"));
+					System.out.println( "DB:" + properties.getProperty("DB"));			
+					System.out.println( "USER_OMS:" + m_credential.get("DB_USER_OMS"));
+					System.out.println( "USER_PC:" + m_credential.get("DB_USER_PC"));
+					System.out.println( "JDBC:" + m_credential.get("JDBC_DB"));
+					System.out.println( "PORT:" + m_credential.get("JDBC_PORT"));
+				
+				}
 				
 			}
-			
-			// Open a RMI connection to server
-			InitialContext context = new InitialContext(propertiesCon);
-			objref = context.lookup(JNDI);
-			IOmsServicesRemoteHome AIFservice = (IOmsServicesRemoteHome) PortableRemoteObject.narrow(objref, IOmsServicesRemoteHome.class);
-			service = AIFservice.create();
-			
-			
-			if (getDebugMode()) {
-				System.out.println("Object created.");
+			catch (Exception e) {
+				
+				System.out.println("Error getting " + sNombreFich + ": " + e.getLocalizedMessage());
+				throw new Exception("Error reading .properties file");
 			}
-			
-			return 0;
-			
-		}catch(Exception e){
-			
-			if (getDebugMode()) {
-				System.out.println("ERROR APM Session initialization FAILED: " + e.toString());
-			}
-			
-			return -1;
 		}
 		
 	}
@@ -258,63 +183,29 @@ extends es.neoris.operations.MainClass
 		OutputParamsLaunchOrder out = new OutputParamsLaunchOrder();
 		
 		//boolean commit = true;
-
-		if (getDebugMode()) {
+		if (LaunchOrder.debugMode) {
 			System.out.println("Entering execProcess");			
 		}
-		
-		 //Open WL connection through RMI
-		if (prepareConnWL() < 0) {
-			if (getDebugMode()) {
-				System.out.println("ERROR WL connection failed. Exiting...");				
-			}
-			return out;
-		}
+
 		
 		// Calculate mandatory info to generate input object 
 		try {
 	          
-	          /* TO DO --> Enganchar la sesion con el EJB al que nos hemos conectado
-	          //session = (IlSession) EpiSessionContext.findSession(tPooledId);	     
-	          session.startTransaction();  // Llamamos asi, aunque es static, para garantizar que se use la sesion a la que nos hemos conectado
-          
-			  if (getDebugMode()) {
-				System.out.println("Transaction started: ");
-				System.out.println(session.toString());
-				CONSUMER_LOGGER.log(LogLevel.DEBUG, "Transaction started: " + session.toString());	
-			  }
-			  */
-	          
-      		// Open db connections...
-      		//MainClass.openDBConnection("LAUNCHORDER", getM_credential());
-      		//if (MainClass.oraConexionPC == null || MainClass.oraConexionOMS == null) {
-      		//	// An error occurred. Exit method 
-			//	if (getDebugMode()) {
-			//		System.out.println("ERROR checking DB connections. Exiting");	
-			//	}
-    		//	return out;
-      		//}
-
+			//Open WL connection through RMI
+			service = BaseAIF.prepareConnWL(connectionProp, JNDI, LaunchOrder.debugMode);
 
       		// Fill the input object: m_input
-      		// ApplicationContext
       		m_input.setM_appContext(getInputAppContext());
-      		
-      		// OrderingContext
       		m_input.setM_orderContext(getInputOrderingContext());
-      		
-      		// StartOrderInput
       		m_input.setM_order(getStartOrderInput(getM_order()));
-      		
-      		// MaksInfo
       		m_input.setM_mask(getInputMaskInfo());
 
       		//Call the AIF Service
-      		StartOrderingProcessOutput output = service.startOrderingProcess(m_input.getM_appContext(), m_input.getM_orderContext(), m_input.getM_order(), m_input.getM_mask());
+      		StartOrderOutput output = service.startOrder(m_input.getM_appContext(), m_input.getM_orderContext(), m_input.getM_order(), m_input.getM_mask());
 
       		if (output == null) {
-				if (getDebugMode()) {
-					System.out.println("ERROR launching order : " + m_input.getM_order().getOrderID().getOrderID());
+				if (LaunchOrder.debugMode) {
+					System.out.println("ERROR launching order : " + m_input.getM_order().getOrder().getOrderID().getOrderID());
 				}
       			
       		}else{
@@ -324,7 +215,7 @@ extends es.neoris.operations.MainClass
       		}
       		
 		} catch (Exception e) {
-			if (getDebugMode()) {
+			if (LaunchOrder.debugMode) {
 				System.out.println("ERROR creating connection to WL: " + e.toString());
 			}
 			return out;
@@ -346,7 +237,7 @@ extends es.neoris.operations.MainClass
 			//bw.write(output.getM_order().getOrderID().toString());
 
 		} catch (IOException e) {
-			if (getDebugMode()) {
+			if (LaunchOrder.debugMode) {
 				System.out.println("ERROR handling output file : " + e.toString());
 				return -1;
 			}
@@ -384,8 +275,8 @@ extends es.neoris.operations.MainClass
 	
 	private OrderingContext getInputOrderingContext() {
         OrderingContext ordCtx = new OrderingContext();
-        //ordCtx.setLocale(MainClass.m_app.getGlobalSession().getLocale());
-        //ordCtx.setSecurityToken(MainClass.m_app.getGlobalSession().getAsmTicket());
+       ordCtx.setLocale(BaseAIF.clfySession.getLocale());
+       ordCtx.setSecurityToken(BaseAIF.profileID);
 	
 		return ordCtx;
 	}
@@ -407,20 +298,23 @@ extends es.neoris.operations.MainClass
 	 * @param orderId   --> order id when the process will be attached
 	 * @return StartOrderInput
 	 */
-	private StartOrderingProcessInput getStartOrderInput(Order order) {
+	private StartOrderInput getStartOrderInput(Order order) {
 		
-		StartOrderingProcessInput sti = new StartOrderingProcessInput();
+		StartOrderInput sti = new StartOrderInput();
 		
-		if (getDebugMode()) {
+		if (LaunchOrder.debugMode) {
 			System.out.println("Getting StartOrderInput details: " + order.getOrderID().getOrderID());				
 		}
 
 		try{
 			// StartOrderInput
-			sti.setOrderID(order.getOrderID());
-      		
+			sti.setOrder(getM_order());
+			sti.setOrderActionsData(getOrderActionData(getM_order()));
+			sti.setMarkOrderAsSaved(true);
+			sti.setConfirmationChecksApproved(true);
+			
 		}catch (Exception e){
-			if (getDebugMode()) {
+			if (LaunchOrder.debugMode) {
 				System.out.println("ERROR getting StartOrderInput details: " + e.toString());	
 			}
 			
@@ -432,6 +326,145 @@ extends es.neoris.operations.MainClass
 	}			
 	
 
+	
+	private OrderActionData[] getOrderActionData(Order order) {
+		
+		Map conn = new HashMap<String, Connection>();
+		OrderActionData[] oad = new OrderActionData[1];
+		
+		CallableStatement sqlQuery = null;
+		ResultSet result = null;
+		
+		if (LaunchOrder.debugMode) {
+			System.out.println("------------------------------------------------------------------------------------------");
+			System.out.println("Getting OrderActionData details: " + order.getOrderID().getOrderID());
+		}
+		
+		try{
+			
+			conn = BaseAIF.openDBConnection(LaunchOrder.class.getName().toUpperCase(), m_credential, LaunchOrder.debugMode);
+
+			sqlQuery = (CallableStatement) ((Connection) conn.get("OMS")).prepareStatement(strQueryOmsOrder.replace("%1", order.getOrderID().getOrderID()));
+			result = sqlQuery.executeQuery();
+
+			if (result.getFetchSize() > 0) {			
+
+				int iConta = 0;
+				while (result.next()) {
+
+					DynamicAttribute[] dynAtr = null;
+					String strDynamic = result.getString(5);
+					
+					if (!"".equals(strDynamic) && strDynamic != null) {
+						
+						String[] values = strDynamic.split("=");
+						if (!"".equals(values[0]) && values[0] !=null) {
+							dynAtr[0].setName(values[0]);
+							dynAtr[0].setValue(values[1]);
+						}
+					}
+					
+					//OrderAction
+					OrderAction oaInfo = null;
+					
+					OrderActionID oaID = null;
+					oaID.setOrderActionID(result.getString(1));
+					oaInfo.setOrderActionID(oaID);
+
+					//OrderActionDetails
+					OrderActionDetails oaDet = null;
+					
+					oaDet.setActionType(new OrderActionTypeRVT((result.getString(5))));
+					oaDet.setStatus(new OrderActionStatusRVT(result.getString(4)));
+					oaDet.setOriginator(result.getString(21));
+					oaDet.setCurrentOwner(result.getString( 21));
+					oaDet.setApplicationDate(result.getDate(16));
+					oaDet.setServiceRequireDate(result.getDate(14));
+					oaDet.setDueDate(result.getDate(6));
+					oaDet.setSalesChannel(new SalesChannelRVT(result.getString(27)));
+					oaDet.setCancelProcess(false);
+					oaDet.setExternalOrderActionID(result.getString(25));
+					oaDet.setCustomerOrderActionID(result.getString(31));
+					
+					SubscriptionGroupID sgID = new SubscriptionGroupID();
+					sgID.setID(result.getInt(23));							
+					oaDet.setSubscriptionGroupID(sgID);
+					oaDet.setAmendProcess(false);
+					oaDet.setCancelProcess(false);	
+					
+					OrganizationID oID = null;
+					oID.setId(null); // TODO Find the correct value...
+					oaDet.setOrganizationID(oID); 
+					
+					//OrderActionUserAction
+					OrderActionUserAction[] ouAct = null;
+					OrderActionUserActionRVT oauAct = null;
+					ouAct[0].setAction(oauAct);
+
+					//SalesChannelRVT 
+					SalesChannelRVT sc = new SalesChannelRVT(result.getString(7));
+					
+					//OrderUserAction
+					OrderUserActionRVT ouaRVT = null;
+					OrderUserAction[] oua = new OrderUserAction[1];
+					oua[0].setAction(ouaRVT);
+					oua[0].setAllowed(true);
+					oua[0].setRelinquishChannels(0, sc);
+
+					//OrderHeader
+					OrderHeader oh = null;
+
+					oh.setOrderID(order.getOrderID());
+					oh.setOrderMode(new OrderModeRVT(result.getString(2)));
+					oh.setOrderStatus(new OrderStatusRVT(result.getString(5)));
+					oh.setApplicationDate(result.getDate(13));
+					oh.setServiceRequiredDate(result.getDate(11));
+					oh.setSalesChannel(sc);
+					oh.setExpiryDate(result.getDate(14));
+					oh.setCustomerOrderID(result.getString(17));
+					oh.setExternalOrderID(result.getString(10));
+					oh.setAvailableUserActions(oua);
+					oh.setSalesChannel(new SalesChannelRVT(result.getString(7)));
+					oh.setLocked(true);
+					oh.setAnonymous(false);
+					
+					oh.setOrderRetrievalCriteria(dynAtr);
+					oh.setCustomerAgreedToPayDeposit(false);
+
+					// Fill OrderAction
+					oaInfo.setOrderActionID(oaID);
+					oaInfo.setOrderActionDetails(oaDet);
+					oaInfo.setAvailableUserActions(ouAct);
+					oaInfo.setOrderHeader(oh);
+
+					// OrderActionData
+					oad[iConta].setOrderActionInfo(oaInfo);
+					oad[iConta].setDynamicAttributes(dynAtr);
+		      		
+		      		iConta++;
+					
+				}
+			}			
+			
+		}catch (Exception e){
+			if (LaunchOrder.debugMode) {
+				System.out.println("------------------------------------------------------------------------------------------");
+				System.out.println("ERROR getting OrderActionData details: " + e.toString());
+			}
+			
+			return oad;
+		
+		}finally {
+	    	try {
+		    	result.close();
+		    	sqlQuery.close();
+		    	
+	    	}catch(Exception e) {}
+			
+		}
+
+		return oad;
+	}
 	
 	
 	public InputParamsLaunchOrder getM_input() {

@@ -23,18 +23,18 @@ implements OperationResults, Mappable, Serializable
 
 	private static final long serialVersionUID = -561774673747545030L;
 
-	private StartOrderingProcessOutput m_order;
+	private StartOrderOutput m_order;
 	
 	
 	public OutputParamsLaunchOrder() {
 		/* default no-op constructor */
 	}
 	
-    public StartOrderingProcessOutput getM_order() {
+    public StartOrderOutput getM_order() {
 		return m_order;
 	}
 
-	public void setM_order(StartOrderingProcessOutput m_order) {
+	public void setM_order(StartOrderOutput m_order) {
 		this.m_order = m_order;
 	}
 
@@ -42,23 +42,24 @@ implements OperationResults, Mappable, Serializable
 	public void fromMap(Map map) {
         if (map != null) {
             Object value = null;
-            value = map.get("StartOrderingProcessOutput");
+            value = map.get("StartOrderOutput");
             if (value != null && value instanceof StartOrderingProcessOutput) {
-                this.m_order = (StartOrderingProcessOutput) value;
+                this.m_order = (StartOrderOutput) value;
             }
         }
     }
 
     public Map toMap() {
         HashMap<String, Object> retMap = new HashMap<String, Object>();
-        retMap.put("StartOrderingProcessOutput", this.m_order);
+        retMap.put("StartOrderOutput", this.m_order);
         return retMap;
     }
+    
     
     public String toString() {
         StringBuffer buf = new StringBuffer("es.neoris.operations.oms.launchorder.OutputParamsLaunchOrder@");
         buf.append(Integer.toHexString(this.hashCode()) + " {");
-        buf.append("\nStartOrderingProcessOutput=");
+        buf.append("\nStartOrderOutput=");
         buf.append(this.m_order == null ? "null" : this.m_order.toString());
         buf.append("\n}");
         return buf.toString();

@@ -1,26 +1,22 @@
 package es.neoris.operations.oms.launchOrder;
 
-import java.util.Map;
-import java.util.HashMap;
 import java.io.Serializable;
-
-import com.amdocs.cih.common.core.sn.ApplicationContext;
-import com.amdocs.cih.common.datatypes.OrderingContext;
-import com.amdocs.cih.common.core.MaskInfo;
-import com.amdocs.cih.services.oms.lib.StartOrderInput;
-import com.amdocs.cih.services.oms.lib.StartOrderingProcessInput;
-import com.amdocs.cih.services.order.lib.RetrieveOrderInput;
-
-import amdocs.core.logging.Logger;
-import amdocs.core.mapping.Mappable;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.amdocs.aif.consumer.OperationInputs;
+import com.amdocs.cih.common.core.MaskInfo;
+import com.amdocs.cih.common.core.sn.ApplicationContext;
+import com.amdocs.cih.common.datatypes.OrderingContext;
+import com.amdocs.cih.services.oms.lib.StartOrderInput;
+
+import amdocs.core.mapping.Mappable;
 
 /**
  * 	Get objects data from database to call AIF operation StartOrderingProcessService 
 		ApplicationContext 			-> com.amdocs.cih.common.core.sn.ApplicationContext
 		OrderingContext 			-> com.amdocs.cih.common.datatypes.OrderingContext
-		StartOrderingProcessInput 	-> com.amdocs.cih.services.oms.lib.StartOrderingProcessInput
+		StartOrderInput 			-> com.amdocs.cih.services.oms.lib.StartOrderInput
 		MaskInfo 					-> com.amdocs.cih.common.core.MaskInfo
 
  * @author Neoris
@@ -36,7 +32,7 @@ implements OperationInputs, Mappable, Serializable
 	// Input objects
 	private ApplicationContext m_appContext;
 	private OrderingContext m_orderContext;
-	private StartOrderingProcessInput m_order;
+	private StartOrderInput m_order;
 	private MaskInfo m_mask;
 
 
@@ -68,12 +64,12 @@ implements OperationInputs, Mappable, Serializable
 	}
 
 
-	public StartOrderingProcessInput getM_order() {
+	public StartOrderInput getM_order() {
 		return m_order;
 	}
 
 
-	public void setM_order(StartOrderingProcessInput m_order) {
+	public void setM_order(StartOrderInput m_order) {
 		this.m_order = m_order;
 	}
 
@@ -98,8 +94,8 @@ implements OperationInputs, Mappable, Serializable
             if ((value = map.get("orderingContext")) != null && value instanceof OrderingContext) {
                 this.m_orderContext = (OrderingContext) value;
             }
-            if ((value = map.get("StartOrderingProcessInput")) != null && value instanceof StartOrderingProcessInput) {
-                this.m_order = (StartOrderingProcessInput) value;
+            if ((value = map.get("StartOrderInput")) != null && value instanceof StartOrderInput) {
+                this.m_order = (StartOrderInput) value;
             }
             if ((value = map.get("maskInfo")) != null && value instanceof MaskInfo) {
                 this.m_mask = (MaskInfo) value;
@@ -115,7 +111,7 @@ implements OperationInputs, Mappable, Serializable
 
         retMap.put("applicationContext", this.m_appContext);
         retMap.put("orderingContext", this.m_orderContext);
-        retMap.put("StartOrderingProcessInput", this.m_order);
+        retMap.put("StartOrderInput", this.m_order);
         retMap.put("maskInfo", this.m_mask);
         return retMap;
 		
@@ -130,7 +126,7 @@ implements OperationInputs, Mappable, Serializable
         buf.append("\norderingContext=");
         buf.append(this.m_orderContext == null ? "null" : this.m_orderContext.toString());
         buf.append(",");
-        buf.append("\nStartOrderingProcessInput=");
+        buf.append("\nStartOrderInput=");
         buf.append(this.m_order == null ? "null" : this.m_order.toString());
         buf.append(",");
         buf.append("\nmaskInfo=");

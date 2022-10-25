@@ -1,7 +1,9 @@
 /MANIFEST.MF
+/clarify.env
 /compilar_java.cmd
 /compilar_java.ksh
 /crear_jar.ksh
+/createandsubmitorder.properties
 /createsession.properties
 /es/
 /launchorder.properties
