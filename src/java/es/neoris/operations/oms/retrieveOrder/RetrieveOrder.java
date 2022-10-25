@@ -1,28 +1,18 @@
 package es.neoris.operations.oms.retrieveOrder;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Properties;
-
-import javax.naming.InitialContext;
-import javax.rmi.PortableRemoteObject;
 
 import com.amdocs.cih.common.core.MaskInfo;
 import com.amdocs.cih.common.core.sn.ApplicationContext;
 import com.amdocs.cih.common.datatypes.OrderingContext;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemote;
-import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemoteHome;
 import com.amdocs.cih.services.order.lib.OrderID;
 import com.amdocs.cih.services.order.lib.OrderRef;
 import com.amdocs.cih.services.order.lib.RetrieveOrderInput;
-import com.amdocs.cih.services.order.lib.RetrieveOrderOutput;
 
 import amdocs.epi.session.EpiSessionId;
 import es.neoris.operations.BaseAIF;
-import es.neoris.operations.oms.createSession.CreateSession;
 
 
 
@@ -112,7 +102,7 @@ extends es.neoris.operations.BaseAIF
 		try {
 			
 			//Open WL connection through RMI
-			service = BaseAIF.prepareConnWL(connectionProp, JNDI, RetrieveOrder.debugMode);
+			service = (IOmsServicesRemote) BaseAIF.prepareConnWL(connectionProp, JNDI, RetrieveOrder.debugMode);
 			
 			// Fill the input parameters
 	  		m_input.setM_appContext(getInputAppContext());

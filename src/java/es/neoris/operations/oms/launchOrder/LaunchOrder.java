@@ -166,7 +166,7 @@ extends es.neoris.operations.BaseAIF
 		try {
 	          
 			//Open WL connection through RMI
-			service = BaseAIF.prepareConnWL(connectionProp, JNDI, LaunchOrder.debugMode);
+			service = (IOmsServicesRemote) BaseAIF.prepareConnWL(connectionProp, JNDI, LaunchOrder.debugMode);
 
       		// Fill the input object: m_input
       		m_input.setM_appContext(getInputAppContext());

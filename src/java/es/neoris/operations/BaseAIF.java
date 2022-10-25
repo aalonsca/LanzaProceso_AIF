@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.ejb.EJBObject;
 import javax.naming.InitialContext;
 import javax.rmi.PortableRemoteObject;
 
@@ -167,11 +168,10 @@ public class BaseAIF {
 			
 			//System.out.println(System.getProperty("java.library.path"));
 			//System.out.println(System.getProperty("path"));
-			
 			clfyApp = new Application();
 	
 			String strModuleDir = clfyApp.getModuleDir();
-			System.out.println("ClarifyEnv.xml Dir: " + strModuleDir);
+			//System.out.println("ClarifyEnv.xml Dir: " + strModuleDir);
 	
 			clfySession = clfyApp.getGlobalSession();
 			ticketAMS = clfySession.getAsmTicket();
@@ -219,7 +219,7 @@ public class BaseAIF {
 	 * @return 0 -> OK
 	 *        -1 -> Error connecting
 	 */
-	protected static IOmsServicesRemote prepareConnWL(Map connectionProp, String JNDI, Boolean debug) {
+	protected static EJBObject prepareConnWL(Map connectionProp, String JNDI, Boolean debug) {
 		
 		if (debug) {
 			System.out.println("Entering prepareConnWL..."); 

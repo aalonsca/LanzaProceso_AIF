@@ -97,7 +97,7 @@ extends es.neoris.operations.BaseAIF
 		try {
 
 			//Open WL connection through RMI
-			service = BaseAIF.prepareConnWL(connectionProp, JNDI, CreateSession.debugMode);
+			service = (IOmsServicesRemote) BaseAIF.prepareConnWL(connectionProp, JNDI, CreateSession.debugMode);
 
 			// Fill the input parameters
 			m_input.setM_appContext(getInputAppContext());
