@@ -124,7 +124,7 @@ public class BaseAIF {
 					LaunchOrder process = new LaunchOrder(true);
 					process.setM_order(outOrder.getM_order().getOrder(0));
 					
-					OutputParamsLaunchOrder output = process.execProcess();
+					OutputParamsLaunchOrder output = process.execProc();
 					
 					if (output == null) {
 						System.out.println("Error executing process " + args[1] + " --> " + args[2] + "(" + args[3] + ")");

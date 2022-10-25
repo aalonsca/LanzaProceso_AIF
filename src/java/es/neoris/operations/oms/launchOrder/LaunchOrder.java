@@ -2,18 +2,14 @@ package es.neoris.operations.oms.launchOrder;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.CallableStatement;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.sql.Connection;
-
-import javax.naming.InitialContext;
-import javax.rmi.PortableRemoteObject;
 
 import com.amdocs.cih.common.core.MaskInfo;
 import com.amdocs.cih.common.core.sn.ApplicationContext;
@@ -22,11 +18,8 @@ import com.amdocs.cih.common.datatypes.OrderActionUserAction;
 import com.amdocs.cih.common.datatypes.OrderUserAction;
 import com.amdocs.cih.common.datatypes.OrderingContext;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemote;
-import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemoteHome;
 import com.amdocs.cih.services.oms.lib.StartOrderInput;
 import com.amdocs.cih.services.oms.lib.StartOrderOutput;
-import com.amdocs.cih.services.oms.lib.StartOrderingProcessInput;
-import com.amdocs.cih.services.oms.lib.StartOrderingProcessOutput;
 import com.amdocs.cih.services.oms.rvt.domain.OrderActionStatusRVT;
 import com.amdocs.cih.services.oms.rvt.domain.OrderActionTypeRVT;
 import com.amdocs.cih.services.oms.rvt.domain.OrderActionUserActionRVT;
@@ -43,26 +36,7 @@ import com.amdocs.cih.services.orderaction.lib.OrderActionID;
 import com.amdocs.cih.services.party.lib.OrganizationID;
 import com.amdocs.cih.services.subscription.lib.SubscriptionGroupID;
 
-import amdocs.epi.util.EpiCollections;
-import amdocs.oms.apcore.ApItem;
-import amdocs.oms.infra.domains.ActionTypeTP;
-import amdocs.oms.infra.domains.BooleanValTP;
-import amdocs.oms.infra.domains.ConfigurationTP;
-import amdocs.oms.infra.domains.LanguageCodeTP;
-import amdocs.oms.infra.domains.OrderActionParentRelationTP;
-import amdocs.oms.infra.domains.OrderActionStatusTP;
-import amdocs.oms.infra.domains.RecontactPeriodTP;
-import amdocs.oms.infra.domains.ActionTypeTP.ActionType;
-import amdocs.oms.infra.domains.BooleanValTP.BooleanVal;
-import amdocs.oms.infra.domains.LanguageCodeTP.LanguageCode;
-import amdocs.oms.infra.domains.OrderActionParentRelationTP.OrderActionParentRelation;
-import amdocs.oms.infra.domains.OrderActionStatusTP.OrderActionStatus;
-import amdocs.oms.infra.domains.RecontactPeriodTP.RecontactPeriod;
-import amdocs.oms.infra.domains.dynamic.DynOrderModeTP;
-import amdocs.oms.infra.domains.dynamic.DynOrderModeTP.DynOrderMode;
-import amdocs.oms.oem.OmOrderAction;
 import es.neoris.operations.BaseAIF;
-import es.neoris.operations.oms.retrieveOrder.RetrieveOrder;
 
 /**
  * @author Neoris
@@ -179,7 +153,7 @@ extends es.neoris.operations.BaseAIF
 	 * @return 0 --> OK
 	 *        -1 --> ERROR
 	 */
-	public OutputParamsLaunchOrder execProcess() {
+	public OutputParamsLaunchOrder execProc() {
 		OutputParamsLaunchOrder out = new OutputParamsLaunchOrder();
 		
 		//boolean commit = true;
