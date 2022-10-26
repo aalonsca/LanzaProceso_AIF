@@ -1,19 +1,15 @@
 package es.neoris.operations.oms.createSession;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Properties;
 
-import com.amdocs.cih.common.core.MaskInfo;
-import com.amdocs.cih.common.core.sn.ApplicationContext;
-import com.amdocs.cih.common.datatypes.OrderingContext;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemote;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemoteHome;
 import com.amdocs.cih.services.oms.lib.CreateOMSSessionRequest;
+import com.amdocs.svcparams.IOmsServicesCreateOMSSessionInputs;
+import com.amdocs.svcparams.IOmsServicesCreateOMSSessionResults;
 
-import amdocs.epi.session.EpiSessionId;
 import es.neoris.operations.BaseAIF;
-import es.neoris.operations.oms.launchOrder.LaunchOrder;
 
 /** Create a new session for using others services.
  * @author Neoris
@@ -36,9 +32,8 @@ extends es.neoris.operations.BaseAIF
 	private static IOmsServicesRemote service = null;
 	
 	// Variables to call service
-	private InputParamsCreateSession m_input;
-	private OutputParamsCreateSession m_output;
-	private EpiSessionId sessionID;
+	private IOmsServicesCreateOMSSessionInputs m_input;
+	private IOmsServicesCreateOMSSessionResults m_output;
 	
 	/**
 	 * Default no-operative constructor
@@ -85,11 +80,10 @@ extends es.neoris.operations.BaseAIF
 	 * @return 0 -> OK
 	 *        -1 -> Error connecting
 	 */
-	public OutputParamsCreateSession execProc() {
+	public IOmsServicesCreateOMSSessionResults execProc() {
 		
-		m_input = new InputParamsCreateSession();
-		m_output = new OutputParamsCreateSession();
-		sessionID = new EpiSessionId();
+		m_input = new IOmsServicesCreateOMSSessionInputs();
+		m_output = new IOmsServicesCreateOMSSessionResults();
 
 		if (CreateSession.debugMode) {
 			System.out.println("Entering execProcess");			
@@ -99,16 +93,16 @@ extends es.neoris.operations.BaseAIF
 		try {
 
 			//Open WL connection through RMI
-			service =((IOmsServicesRemoteHome) BaseAIF.createWLConnection(connectionProp, JNDI, CreateSession.debugMode)).create();
+			service =((IOmsServicesRemoteHome) BaseAIF.createEJBObject(connectionProp, JNDI, CreateSession.debugMode)).create();
 
 			// Fill the input parameters
-			m_input.setM_appContext(getInputAppContext());
-			m_input.setM_orderContext(getInputOrderingContext());
-			m_input.setM_mask(getInputMaskInfo());
-			m_input.setM_OMSSession(getInputOMSSession());
+			m_input.setApplicationContext(BaseAIF.appContext);
+			m_input.setOrderingContext(BaseAIF.orderingContext);
+			m_input.setMaskInfo(BaseAIF.maskInfo);
+			m_input.setCreateOMSSessionRequest(getInputOMSSession());
 			
 			//Call the AIF service
-			m_output.setM_sessionID(service.createOMSSession(m_input.getM_appContext(), m_input.getM_orderContext(), m_input.getM_OMSSession(), m_input.getM_mask()));			
+			m_output.setCreateOMSSessionResponse(service.createOMSSession(m_input.getApplicationContext(), m_input.getOrderingContext(), m_input.getCreateOMSSessionRequest(), m_input.getMaskInfo()));
 
 			
 			if (CreateSession.debugMode) {
@@ -130,54 +124,6 @@ extends es.neoris.operations.BaseAIF
 		
 	}
 	
-
-	public void releaseSession() {
-		setSessionID(null);
-	}
-	
-	
-	public EpiSessionId getSessionID() {
-		return sessionID;
-	}
-
-
-	public void setSessionID(EpiSessionId sessionID) {
-		this.sessionID = sessionID;
-	}
-
-	/**
-	 * Initialize ApplicationContext object
-	 * @return ApplicationContext
-	 */
-	
-	private ApplicationContext getInputAppContext() {
-		ApplicationContext ctx = new ApplicationContext();  		
-  		ctx.setFormatLocale(new Locale("en_US_", "en", "US"));
-  		//ctx.setFormatLocale(MainClass);
-  		
-  		return ctx;
-	}
-	
-	/**
-	 * Initialize OrderingContext
-	 * @return ApplicationContext
-	 */
-	
-	private OrderingContext getInputOrderingContext() {
-        OrderingContext ordCtx = new OrderingContext();
-        ordCtx.setLocale(new Locale("en_US_", "en", "US"));
-		return ordCtx;
-	}
-		
-	/**
-	 *  Initialize MaskInfo
-	 * @return MaskInfo
-	 */
-	private MaskInfo getInputMaskInfo() {
-		MaskInfo mask = new MaskInfo();
-		
-		return mask;
-	}
 	
 	private CreateOMSSessionRequest getInputOMSSession() {
 		CreateOMSSessionRequest sessionRequest = new CreateOMSSessionRequest();
@@ -185,27 +131,12 @@ extends es.neoris.operations.BaseAIF
 		String ticket = BaseAIF.ticketAMS;
 		
 		sessionRequest.setLanguage(BaseAIF.clfySession.getLocale().getDisplayLanguage());
-		//sessionRequest.setClientMachine("");
 		sessionRequest.setAsmTicket(ticket);
 		
 		return sessionRequest;
 		
 	}
 	
-	public InputParamsCreateSession getM_input() {
-		return m_input;
-	}
 
-	public void setM_input(InputParamsCreateSession m_input) {
-		this.m_input = m_input;
-	}
-
-	public OutputParamsCreateSession getM_output() {
-		return m_output;
-	}
-
-	public void setM_output(OutputParamsCreateSession m_output) {
-		this.m_output = m_output;
-	}
 
 }

@@ -11,16 +11,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import com.amdocs.cih.common.core.MaskInfo;
-import com.amdocs.cih.common.core.sn.ApplicationContext;
 import com.amdocs.cih.common.datatypes.DynamicAttribute;
 import com.amdocs.cih.common.datatypes.OrderActionUserAction;
 import com.amdocs.cih.common.datatypes.OrderUserAction;
-import com.amdocs.cih.common.datatypes.OrderingContext;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemote;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemoteHome;
 import com.amdocs.cih.services.oms.lib.StartOrderInput;
-import com.amdocs.cih.services.oms.lib.StartOrderOutput;
 import com.amdocs.cih.services.oms.rvt.domain.OrderActionStatusRVT;
 import com.amdocs.cih.services.oms.rvt.domain.OrderActionTypeRVT;
 import com.amdocs.cih.services.oms.rvt.domain.OrderActionUserActionRVT;
@@ -36,6 +32,8 @@ import com.amdocs.cih.services.orderaction.lib.OrderActionDetails;
 import com.amdocs.cih.services.orderaction.lib.OrderActionID;
 import com.amdocs.cih.services.party.lib.OrganizationID;
 import com.amdocs.cih.services.subscription.lib.SubscriptionGroupID;
+import com.amdocs.svcparams.IOmsServicesStartOrderInputs;
+import com.amdocs.svcparams.IOmsServicesStartOrderResults;
 
 import es.neoris.operations.BaseAIF;
 
@@ -72,8 +70,8 @@ extends es.neoris.operations.BaseAIF
 
 
 	// Variables to call service
-	private InputParamsLaunchOrder m_input;
-	private OutputParamsLaunchOrder m_output;
+	private IOmsServicesStartOrderInputs m_input;
+	private IOmsServicesStartOrderResults m_output;
 
 	//Queries
 	private String strQueryOmsOrder = "SELECT T.CTDB_LAST_UPDATOR, T.ORDER_MODE, T.GROUP_ID, T.ROOT_CUSTOMER_ID, T.STATUS, T.OPPORTUNITY_ID, T.CURRENT_SALES_CHANNEL, T.DEALER_CODE, T.ADDRESS_ID, T.EXT_REF_NUM" // 10
@@ -154,10 +152,8 @@ extends es.neoris.operations.BaseAIF
 	 * @return 0 --> OK
 	 *        -1 --> ERROR
 	 */
-	public OutputParamsLaunchOrder execProc() {
-		OutputParamsLaunchOrder out = new OutputParamsLaunchOrder();
+	public IOmsServicesStartOrderResults execProc() {
 		
-		//boolean commit = true;
 		if (LaunchOrder.debugMode) {
 			System.out.println("Entering execProcess");			
 		}
@@ -167,36 +163,30 @@ extends es.neoris.operations.BaseAIF
 		try {
 			
 			//Open WL connection through RMI
-			service = ((IOmsServicesRemoteHome) BaseAIF.createWLConnection(connectionProp, JNDI, LaunchOrder.debugMode)).create();
+			service = ((IOmsServicesRemoteHome) BaseAIF.createEJBObject(connectionProp, JNDI, LaunchOrder.debugMode)).create();
 
       		// Fill the input object: m_input
-      		m_input.setM_appContext(getInputAppContext());
-      		m_input.setM_orderContext(getInputOrderingContext());
-      		m_input.setM_order(getStartOrderInput(getM_order()));
-      		m_input.setM_mask(getInputMaskInfo());
+      		m_input.setApplicationContext(BaseAIF.appContext);
+      		m_input.setOrderingContext(BaseAIF.orderingContext);
+      		m_input.setMaskInfo(BaseAIF.maskInfo);
+      		m_input.setStartOrderInput(getStartOrderInput(getM_order()));
 
       		//Call the AIF Service
-      		StartOrderOutput output = service.startOrder(m_input.getM_appContext(), m_input.getM_orderContext(), m_input.getM_order(), m_input.getM_mask());
+      		m_output.setStartOrderOutput(service.startOrder(m_input.getApplicationContext(), m_input.getOrderingContext(), m_input.getStartOrderInput(), m_input.getMaskInfo()));
 
-      		if (output == null) {
-				if (LaunchOrder.debugMode) {
-					System.out.println("ERROR launching order : " + m_input.getM_order().getOrder().getOrderID().getOrderID());
-				}
-      			
-      		}else{
-      			
-      			out.setM_order(output);
-      			
+      		if (m_output.getStartOrderOutput().getOrderID() == null) {
+				if (LaunchOrder.debugMode) System.out.println("ERROR launching order : " + m_input.getStartOrderInput().getOrder().getOrderID().getOrderID());
+				
       		}
       		
 		} catch (Exception e) {
 			if (LaunchOrder.debugMode) {
 				System.out.println("ERROR creating connection to WL: " + e.toString());
 			}
-			return out;
+			return m_output;
 		}
 		
-		return out;
+		return m_output;
 			
 	}	
 
@@ -229,42 +219,6 @@ extends es.neoris.operations.BaseAIF
 		return 0;
 	}
 	
-		
-		
-	/**
-	 * Initialize ApplicationContext object
-	 * @return ApplicationContext
-	 */
-	
-	private ApplicationContext getInputAppContext() {
-  		ApplicationContext ctx = new ApplicationContext();  		
-  		//ctx.setFormatLocale(MainClass.m_app.getGlobalSession().getLocale());
-  		
-  		return ctx;
-	}
-	
-	/**
-	 * Initialize OrderingContext
-	 * @return ApplicationContext
-	 */
-	
-	private OrderingContext getInputOrderingContext() {
-        OrderingContext ordCtx = new OrderingContext();
-       ordCtx.setLocale(BaseAIF.clfySession.getLocale());
-       ordCtx.setSecurityToken(BaseAIF.profileID);
-	
-		return ordCtx;
-	}
-		
-	/**
-	 *  Initialize MakInfo
-	 * @return MaskInfo
-	 */
-	private MaskInfo getInputMaskInfo() {
-		MaskInfo mask = new MaskInfo();
-		
-		return mask;
-	}
 	
 
 	/**
@@ -304,7 +258,7 @@ extends es.neoris.operations.BaseAIF
 	
 	private OrderActionData[] getOrderActionData(Order order) {
 		
-		Map conn = new HashMap<String, Connection>();
+		Map<String, Connection> conn = new HashMap<String, Connection>();
 		OrderActionData[] oad = new OrderActionData[1];
 		
 		CallableStatement sqlQuery = null;
@@ -327,7 +281,7 @@ extends es.neoris.operations.BaseAIF
 				int iConta = 0;
 				while (result.next()) {
 
-					DynamicAttribute[] dynAtr = null;
+					DynamicAttribute[] dynAtr = new DynamicAttribute[10];
 					String strDynamic = result.getString(5);
 					
 					if (!"".equals(strDynamic) && strDynamic != null) {
@@ -340,14 +294,14 @@ extends es.neoris.operations.BaseAIF
 					}
 					
 					//OrderAction
-					OrderAction oaInfo = null;
+					OrderAction oaInfo = new OrderAction();
 					
-					OrderActionID oaID = null;
+					OrderActionID oaID = new OrderActionID();
 					oaID.setOrderActionID(result.getString(1));
 					oaInfo.setOrderActionID(oaID);
 
 					//OrderActionDetails
-					OrderActionDetails oaDet = null;
+					OrderActionDetails oaDet = new OrderActionDetails();
 					
 					oaDet.setActionType(new OrderActionTypeRVT((result.getString(5))));
 					oaDet.setStatus(new OrderActionStatusRVT(result.getString(4)));
@@ -367,14 +321,13 @@ extends es.neoris.operations.BaseAIF
 					oaDet.setAmendProcess(false);
 					oaDet.setCancelProcess(false);	
 					
-					OrganizationID oID = null;
+					OrganizationID oID = new OrganizationID();
 					oID.setId(null); // TODO Find the correct value...
 					oaDet.setOrganizationID(oID); 
 					
 					//OrderActionUserAction
-					OrderActionUserAction[] ouAct = null;
-					OrderActionUserActionRVT oauAct = null;
-					ouAct[0].setAction(oauAct);
+					OrderActionUserAction[] ouAct = new OrderActionUserAction[10];
+					ouAct[0].setAction(new OrderActionUserActionRVT());
 
 					//SalesChannelRVT 
 					SalesChannelRVT sc = new SalesChannelRVT(result.getString(7));
@@ -387,7 +340,7 @@ extends es.neoris.operations.BaseAIF
 					oua[0].setRelinquishChannels(0, sc);
 
 					//OrderHeader
-					OrderHeader oh = null;
+					OrderHeader oh = new OrderHeader();
 
 					oh.setOrderID(order.getOrderID());
 					oh.setOrderMode(new OrderModeRVT(result.getString(2)));
@@ -441,22 +394,6 @@ extends es.neoris.operations.BaseAIF
 		return oad;
 	}
 	
-	
-	public InputParamsLaunchOrder getM_input() {
-		return m_input;
-	}
-
-	public void setM_input(InputParamsLaunchOrder m_input) {
-		this.m_input = m_input;
-	}
-
-	public OutputParamsLaunchOrder getM_output() {
-		return m_output;
-	}
-
-	public void setM_output(OutputParamsLaunchOrder m_output) {
-		this.m_output = m_output;
-	}
 
 	public String getStrIDContract() {
 		return m_strIDContract;
@@ -505,7 +442,7 @@ extends es.neoris.operations.BaseAIF
 
 
 	public void setService(IOmsServicesRemote service) {
-		this.service = service;
+		LaunchOrder.service = service;
 	}
 
 	public Order getM_order() {

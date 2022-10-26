@@ -2,31 +2,16 @@
 <classpath>
 	<classpathentry kind="src" path="src/java"/>
 	<classpathentry kind="src" path="res"/>
-	<classpathentry exported="true" kind="lib" path="lib/ClfyCore.jar"/>
 	<classpathentry kind="lib" path="lib/AmdocsOrderingCihDataTypes.jar"/>
-	<classpathentry kind="lib" path="lib/AmdocsProcMgrBase.jar"/>
-	<classpathentry kind="lib" path="lib/AmdocsProcMgrEngine.jar"/>
-	<classpathentry kind="lib" path="lib/core_domain.jar"/>
 	<classpathentry kind="lib" path="lib/ojdbc6.jar"/>
 	<classpathentry kind="lib" path="lib/wlthint3client.jar"/>
 	<classpathentry kind="lib" path="lib/AmdocsCihDatatypes.jar"/>
-	<classpathentry kind="lib" path="lib/AmdocsSvcCommon.jar"/>
-	<classpathentry kind="lib" path="lib/AmdocsProcMgrEmitted.jar"/>
-	<classpathentry kind="lib" path="lib/AmdocsProcMgrEngineExample.jar"/>
-	<classpathentry kind="lib" path="lib/ofc.jar"/>
-	<classpathentry kind="lib" path="lib/AmdocsCore.jar"/>
 	<classpathentry kind="lib" path="lib/uams.jar"/>
-	<classpathentry kind="lib" path="lib/AmdocsProcMgrApplication.jar"/>
-	<classpathentry kind="lib" path="lib/AmdocsProcMgrProxy.jar"/>
-	<classpathentry kind="lib" path="lib/jakarta-regexp-1.2.jar"/>
-	<classpathentry kind="lib" path="lib/AmdocsAif.jar"/>
 	<classpathentry kind="lib" path="lib/AmdocsOrderingCihSpnLayer.jar"/>
-	<classpathentry kind="lib" path="lib/AmdocsOrderingPortfolioClientKit.jar"/>
-	<classpathentry kind="lib" path="lib/acfglib.jar"/>
-	<classpathentry kind="lib" path="lib/jaxen-1.1-beta-9.jar"/>
-	<classpathentry kind="lib" path="lib/jdom.jar"/>
-	<classpathentry kind="lib" path="lib/xercesImpl.jar"/>
-	<classpathentry kind="lib" path="lib/xml-apis.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/car7e_client_classes.jar"/>
+	<classpathentry kind="lib" path="lib/ClfyCore.jar"/>
+	<classpathentry kind="lib" path="lib/AmdocsCore.jar"/>
+	<classpathentry kind="lib" path="lib/gjf_client_classes.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

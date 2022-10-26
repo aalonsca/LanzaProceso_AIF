@@ -1,7 +1,6 @@
 package es.neoris.operations;
 
 
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -16,56 +15,46 @@ import javax.ejb.EJBObject;
 import javax.naming.InitialContext;
 import javax.rmi.PortableRemoteObject;
 
-import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemote;
-import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemoteHome;
+import com.amdocs.cih.common.core.MaskInfo;
+import com.amdocs.cih.common.core.sn.ApplicationContext;
+import com.amdocs.cih.common.datatypes.OrderingContext;
+import com.amdocs.svcparams.IOmsServicesRetrieveOrderResults;
+import com.amdocs.svcparams.IOmsServicesStartOrderResults;
 import com.clarify.cbo.Application;
 import com.clarify.cbo.Session;
 
-import amdocs.epi.session.EpiSessionId;
+import amdocs.ar.datalayer.datatypes.DisputePDt;
+import es.neoris.operations.abp.ARcreateDispute.ARcreateDispute;
 import es.neoris.operations.oms.createSession.CreateSession;
-import es.neoris.operations.oms.createSession.InputParamsCreateSession;
-import es.neoris.operations.oms.createSession.OutputParamsCreateSession;
 import es.neoris.operations.oms.launchOrder.LaunchOrder;
-import es.neoris.operations.oms.launchOrder.OutputParamsLaunchOrder;
-import es.neoris.operations.oms.retrieveOrder.OutputParamsRetrieveOrder;
 import es.neoris.operations.oms.retrieveOrder.RetrieveOrder;
 
 
 
-
 /**
- * Execute an AIF service. Previous, always execute CreateSession AIF.
+ * Execute an AIF service. Previously, always execute CreateSession AIF.
  * @author NEORIS
  * @version: 1.0
  */
 public class BaseAIF {
 
-	// Variables to control connection to db
-	private static String ORACLE_DRIVER_CLFY = null;
-	protected static Connection oraConexionOMS = null;
-	protected static Connection oraConexionPC = null;
-
-	//protected static boolean DebugMode = false;
-	// Variables to control WL connection and Amdocs sessions
+	// Variables to control Amdocs session
 	protected static Application clfyApp = null;
 	protected static Session clfySession = null;
-	protected static final String initialContextFactory = "weblogic.jndi.WLInitialContextFactory";
-	
-	//static final String sDirEject = "res/";
-	//static final String s_nombreFich ="mainclass.properties";
 
-	//Output variables
+	//Session variables variables
 	protected static String ticketAMS;
 	protected static String profileID;
-	protected static String orderID;
+	
+	protected static ApplicationContext appContext;
+	protected static OrderingContext orderingContext;
+	protected static MaskInfo maskInfo;
+	
 	
 	/**
 	 * Main function
 	 * @param args
-	 *   0 -> service name
-	 *   1 -> id order
-	 *   2 -> process name
-	 *   3 -> process version
+	 *  
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
@@ -75,10 +64,37 @@ public class BaseAIF {
 			throw new Exception("Error. Input parameters missing.");
 		}
 		
-		try {
-			// New parent object. Initialize remote services
-			BaseAIF proceso = new BaseAIF(true);
+		BaseAIF.startServices(args);
+		
+	}
 
+	/**
+	 * Constructor
+	 */
+	public BaseAIF () {
+		//no-op constructor
+		
+	}
+
+	
+	/**
+	 * Start services
+	 */
+	public static void startServices (String[] args)
+	throws Exception {
+
+		try {
+			
+			// Initialize remote services
+			clfyApp = new Application();
+			clfySession = clfyApp.getGlobalSession();
+			ticketAMS = clfySession.getAsmTicket();
+			
+			// Initialize static properties
+			BaseAIF.setInputAppContext();
+			BaseAIF.setInputOrderingContext();
+			BaseAIF.setInputMaskInfo();
+			
 		}catch(Exception e) {
 			System.out.println("ERROR " + e.toString());
 			System.exit(0);
@@ -88,11 +104,14 @@ public class BaseAIF {
 		CreateSession session = new CreateSession(true);		
 		try {
 						
-			profileID = session.execProc().getM_sessionID().getSecurityProfileID(); 
+			profileID = session.execProc().getCreateOMSSessionResponse().getSecurityProfileID(); 
 			if (profileID == null) {
 				System.out.println("Error getting ticket AMS.");
 				throw new Exception("Error getting ticket AMS.");
+			}else{
+			    BaseAIF.orderingContext.setSecurityToken(profileID);  
 			}
+				
  
 		}catch(Exception e) {
 			System.out.println("Error creating OMSSession.");
@@ -108,14 +127,15 @@ public class BaseAIF {
 				String service =args[0];				
 				if ("LAUNCHORDER".equalsIgnoreCase(service)) {
 					
+					
 					//Retrieve the order info
 					RetrieveOrder order = new RetrieveOrder(true);
 					order.setM_orderId(args[1]); //Fill the orderID through the input param
 					
 					//Call the service to retrieve the Order object
-					OutputParamsRetrieveOrder outOrder =order.execProc(); 
+					IOmsServicesRetrieveOrderResults outOrder =order.execProc(); 
 					
-					orderID = outOrder.getM_order().getOrder(0).getOrderID().getOrderID();					
+					String orderID = outOrder.getRetrieveOrderOutput().getOrder(0).getOrderID().getOrderID();					
 					if (orderID == null) {
 						System.out.println("Error getting order info" + orderID);
 						throw new Exception("Error getting order info: " + orderID);
@@ -123,9 +143,9 @@ public class BaseAIF {
 					
 					//LaunchOrder service					
 					LaunchOrder process = new LaunchOrder(true);
-					process.setM_order(outOrder.getM_order().getOrder(0));
+					process.setM_order(outOrder.getRetrieveOrderOutput().getOrder(0));
 					
-					OutputParamsLaunchOrder output = process.execProc();
+					IOmsServicesStartOrderResults output = process.execProc();
 					
 					if (output == null) {
 						System.out.println("Error executing process " + args[1] + " --> " + args[2] + "(" + args[3] + ")");
@@ -141,6 +161,24 @@ public class BaseAIF {
 					}
 					
 				}
+				// ARcreateDispute service
+				else if ("ARCREATEDISPUTE".equalsIgnoreCase(service)) {
+					
+					ARcreateDispute process = new ARcreateDispute(true);
+					// Fill the data obtains by the input parameters
+					process.setAccountId((long) Long.valueOf(args[1])); 
+					process.setCmAccountNumber((String) args[2]);
+					process.setAmount((double) Double.valueOf(args[3]));
+					
+					DisputePDt output = process.execProc();
+					
+					if (output == null) {
+						System.out.println("Error executing process " + args[1] + " --> " + args[2] + "(" + args[3] + ")");
+						throw new Exception("Error executing process " + args[1] + " --> " + args[2] + "(" + args[3] + ")");
+					}
+					
+					
+				}
 			}
 			
 		}catch(Exception e) {
@@ -148,39 +186,10 @@ public class BaseAIF {
 			throw new Exception("Error executing " + args[0] + ". Exiting...");
 		}
 		
-	}
-
-	/**
-	 * Constructor
-	 */
-	public BaseAIF () {
-		//no-op constructor
 		
 	}
 
-	/**
-	 * Constructor
-	 */
-	public BaseAIF (boolean initApp) {
-		System.out.println("Initalizing services...");
-
-		if (initApp) {
-			
-			//System.out.println(System.getProperty("java.library.path"));
-			//System.out.println(System.getProperty("path"));
-			clfyApp = new Application();
 	
-			String strModuleDir = clfyApp.getModuleDir();
-			//System.out.println("ClarifyEnv.xml Dir: " + strModuleDir);
-	
-			clfySession = clfyApp.getGlobalSession();
-			ticketAMS = clfySession.getAsmTicket();
-
-		}
-			
-		
-	}
-
 
 	/**
 	 * Gets service configuration from .properties file
@@ -219,7 +228,7 @@ public class BaseAIF {
 	 * @return 0 -> OK
 	 *        -1 -> Error connecting
 	 */
-	protected static EJBObject createWLConnection(Map connectionProp, String JNDI, Boolean debug) {
+	protected static EJBObject createEJBObject(Map<String, String> connectionProp, String JNDI, Boolean debug) {
 		
 		if (debug) {
 			System.out.println("Entering prepareConnWL..."); 
@@ -230,6 +239,8 @@ public class BaseAIF {
 		// Generating WL connection
 		try {
 			
+			String initialContextFactory = "weblogic.jndi.WLInitialContextFactory";
+
 			// Defining properties to connect 
 			Properties propertiesCon = new Properties();
 			propertiesCon.put(InitialContext.INITIAL_CONTEXT_FACTORY, initialContextFactory);
@@ -247,7 +258,7 @@ public class BaseAIF {
 			// Open a RMI connection to server
 			InitialContext context = new InitialContext(propertiesCon);
 			objref = context.lookup(JNDI);
-			EJBObject AIFservice = (EJBObject) PortableRemoteObject.narrow(objref, IOmsServicesRemoteHome.class);
+			EJBObject AIFservice = (EJBObject) PortableRemoteObject.narrow(objref, EJBObject.class);
 			return AIFservice;
 			
 			
@@ -273,15 +284,19 @@ public class BaseAIF {
 	 * @return Map <String -> name, Connection -> dbConnection> 	    
 	 * @throws SQLException
 	 */
-	protected static Map openDBConnection(String strService, HashMap<String, String> prop, Boolean debug) throws SQLException {
+	protected static Map<String, Connection> openDBConnection(String strService, HashMap<String, String> prop, Boolean debug) throws SQLException {
 
-		HashMap connection = new HashMap<String, Connection>();
-		
+		HashMap<String, Connection> connection = new HashMap<String, Connection>();
+		String ORACLE_DRIVER_CLFY = null;
+
 		if (debug) 
 			System.out.println("Entering openDBConnection with value : " + strService);
 
 		
 		if (!"".equals(strService) && ("LAUNCHORDER".equals(strService) || "ALL".equals(strService))) {
+
+			Connection oraConexionOMS = null;
+			Connection oraConexionPC = null;
 
 			//Open db connection using OMS user
 			try {
@@ -357,6 +372,31 @@ public class BaseAIF {
 	}
 		
 
+	/**
+	 * Initialize ApplicationContext object
+	 * @return ApplicationContext
+	 */
+	private static void setInputAppContext() {
+		BaseAIF.appContext.setFormatLocale(BaseAIF.clfySession.getLocale());
+	}
+	
+	/**
+	 * Initialize OrderingContext
+	 * @return ApplicationContext
+	 */
+	private static void setInputOrderingContext() {
+        
+        BaseAIF.orderingContext.setLocale(BaseAIF.clfySession.getLocale());
+	}
+		
+	/**
+	 *  Initialize MaskInfo
+	 * @return MaskInfo
+	 */
+	private static void setInputMaskInfo() {
+		BaseAIF.maskInfo.setMaskPropertyPathList(null);
+	}
+	
 
 	
 }

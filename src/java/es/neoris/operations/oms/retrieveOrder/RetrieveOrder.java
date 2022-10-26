@@ -3,18 +3,15 @@ package es.neoris.operations.oms.retrieveOrder;
 import java.util.HashMap;
 import java.util.Properties;
 
-import com.amdocs.cih.common.core.MaskInfo;
-import com.amdocs.cih.common.core.sn.ApplicationContext;
-import com.amdocs.cih.common.datatypes.OrderingContext;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemote;
 import com.amdocs.cih.services.oms.interfaces.IOmsServicesRemoteHome;
 import com.amdocs.cih.services.order.lib.OrderID;
 import com.amdocs.cih.services.order.lib.OrderRef;
 import com.amdocs.cih.services.order.lib.RetrieveOrderInput;
+import com.amdocs.svcparams.IOmsServicesRetrieveOrderInputs;
+import com.amdocs.svcparams.IOmsServicesRetrieveOrderResults;
 
-import amdocs.epi.session.EpiSessionId;
 import es.neoris.operations.BaseAIF;
-import es.neoris.operations.oms.createSession.CreateSession;
 
 
 
@@ -39,10 +36,8 @@ extends es.neoris.operations.BaseAIF
 	
 	
 	// Variables to call service
-	private InputParamsRetrieveOrder m_input = new InputParamsRetrieveOrder();
-	private OutputParamsRetrieveOrder m_output = new OutputParamsRetrieveOrder();
-	private EpiSessionId sessionID;
-
+	private IOmsServicesRetrieveOrderInputs m_input;
+	private IOmsServicesRetrieveOrderResults m_output;
 	
 	private String m_orderId;
 	
@@ -91,11 +86,10 @@ extends es.neoris.operations.BaseAIF
 	 * @return 0 -> OK
 	 *        -1 -> Error connecting
 	 */
-	public OutputParamsRetrieveOrder execProc() {
+	public IOmsServicesRetrieveOrderResults execProc() {
 		
-		m_input = new InputParamsRetrieveOrder();
-		m_output = new OutputParamsRetrieveOrder();
-		sessionID = new EpiSessionId();
+		m_input = new IOmsServicesRetrieveOrderInputs();
+		m_output = new IOmsServicesRetrieveOrderResults();
 		
 		if (RetrieveOrder.debugMode) {
 			System.out.println("Entering execProcess");			
@@ -104,16 +98,16 @@ extends es.neoris.operations.BaseAIF
 		try {
 			
 			//Open WL connection through RMI
-			service = ((IOmsServicesRemoteHome) BaseAIF.createWLConnection(connectionProp, JNDI, RetrieveOrder.debugMode)).create();
+			service = ((IOmsServicesRemoteHome) BaseAIF.createEJBObject(connectionProp, JNDI, RetrieveOrder.debugMode)).create();
 			
 			// Fill the input parameters
-	  		m_input.setM_appContext(getInputAppContext());
-	  		m_input.setM_orderContext(getInputOrderingContext());
-	  		m_input.setM_order(getInputRetrieveOrder(m_orderId));
-	  		m_input.setM_mask(getInputMaskInfo());
+	  		m_input.setApplicationContext(BaseAIF.appContext);
+	  		m_input.setOrderingContext(BaseAIF.orderingContext);
+	  		m_input.setMaskInfo(BaseAIF.maskInfo);
+	  		m_input.setRetrieveOrderInput(getInputRetrieveOrder(m_orderId));
 
 			//Call the AIF service
-	  		m_output.setM_order(service.retrieveOrder(m_input.getM_appContext(), m_input.getM_orderContext(), m_input.getM_order(), m_input.getM_mask()));
+	  		m_output.setRetrieveOrderOutput(service.retrieveOrder(m_input.getApplicationContext(), m_input.getOrderingContext(), m_input.getRetrieveOrderInput(), m_input.getMaskInfo()));
 	  		return m_output;
 	  		
 		}catch(Exception e) {
@@ -124,42 +118,6 @@ extends es.neoris.operations.BaseAIF
 			
 		}
 		
-	}
-	
-	/**
-	 * Initialize ApplicationContext object
-	 * @return ApplicationContext
-	 */
-	
-	private ApplicationContext getInputAppContext() {
-		ApplicationContext ctx = new ApplicationContext();  		
-  		//ctx.setFormatLocale(new Locale("en_US_", "en", "US"));
-  		ctx.setFormatLocale(BaseAIF.clfySession.getLocale());
-  		
-  		return ctx;
-	}
-	
-	/**
-	 * Initialize OrderingContext
-	 * @return ApplicationContext
-	 */
-	
-	private OrderingContext getInputOrderingContext() {
-        OrderingContext ordCtx = new OrderingContext();
-        ordCtx.setLocale(BaseAIF.clfySession.getLocale());
-        ordCtx.setSecurityToken(BaseAIF.profileID);
-        
-		return ordCtx;
-	}
-		
-	/**
-	 *  Initialize MaskInfo
-	 * @return MaskInfo
-	 */
-	private MaskInfo getInputMaskInfo() {
-		MaskInfo mask = new MaskInfo();
-		
-		return mask;
 	}
 	
 
@@ -189,37 +147,7 @@ extends es.neoris.operations.BaseAIF
 		return order;
 	}
 	
-	
-	public void releaseSession() {
-		setSessionID(null);
-	}
-	
-	
-	public EpiSessionId getSessionID() {
-		return sessionID;
-	}
 
-
-	public void setSessionID(EpiSessionId sessionID) {
-		this.sessionID = sessionID;
-	}
-
-
-	public InputParamsRetrieveOrder getM_input() {
-		return m_input;
-	}
-
-	public void setM_input(InputParamsRetrieveOrder m_input) {
-		this.m_input = m_input;
-	}
-
-	public OutputParamsRetrieveOrder getM_output() {
-		return m_output;
-	}
-
-	public void setM_output(OutputParamsRetrieveOrder m_output) {
-		this.m_output = m_output;
-	}
 
 	public String getM_orderId() {
 		return m_orderId;
