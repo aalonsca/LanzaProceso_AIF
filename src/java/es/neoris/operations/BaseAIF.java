@@ -64,6 +64,13 @@ public class BaseAIF {
 			throw new Exception("Error. Input parameters missing.");
 		}
 		
+		System.out.println("");
+		System.out.println("------------------------");
+		System.out.println(System.getProperty("java.library.path"));
+		System.out.println(System.getenv("PATH"));
+		System.out.println(System.getenv("LD_LIBRARY_PATH"));
+		System.out.println("------------------------");
+		
 		BaseAIF.startServices(args);
 		
 	}
@@ -86,7 +93,9 @@ public class BaseAIF {
 		try {
 			
 			// Initialize remote services
-			clfyApp = new Application();
+			clfyApp = new Application();			
+			clfyApp.initialize();
+			
 			clfySession = clfyApp.getGlobalSession();
 			ticketAMS = clfySession.getAsmTicket();
 			

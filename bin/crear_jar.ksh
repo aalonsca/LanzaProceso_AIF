@@ -1,5 +1,8 @@
 #!/bin/ksh
 
-jar cvmf MANIFEST.MF LanzaProceso.jar LanzaProceso.class
+#Generamos el .jar con las clases. ATENCION: hay que copiar el MANIFEST.MF al directorio en el que estan las clases y ejecutarlo desde alli
+jar cvmf MANIFEST.MF LanzaProceso.jar $(find . -name "*.class")
 
-mv LanzaProceso.jar ../../.
+#actualizamos con el resto de archivos necesarios
+#mv LanzaProceso.jar ./../.
+#jar uvf LanzaProceso.jar res lib

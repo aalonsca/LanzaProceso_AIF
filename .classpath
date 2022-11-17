@@ -8,7 +8,7 @@
 	<classpathentry kind="lib" path="lib/AmdocsCihDatatypes.jar"/>
 	<classpathentry kind="lib" path="lib/uams.jar"/>
 	<classpathentry kind="lib" path="lib/AmdocsOrderingCihSpnLayer.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk1.8.0_202"/>
 	<classpathentry kind="lib" path="lib/car7e_client_classes.jar"/>
 	<classpathentry kind="lib" path="lib/ClfyCore.jar"/>
 	<classpathentry kind="lib" path="lib/AmdocsCore.jar"/>
